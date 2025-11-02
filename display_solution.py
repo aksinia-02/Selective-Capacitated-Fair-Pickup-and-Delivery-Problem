@@ -156,7 +156,7 @@ def generate_color_map(m):
 #     display_colored_graph(graph, coloring, color_map)
 
 def display_graph(graph):
-    color_map = {1: '#4d2b2b', 2: '#733a3a', 3: '#64493b'}
+    color_map = {1: '#763752', 2: '#99ced6', 3: '#9596c1'}
 
     coloring = {}
     for node in graph.nodes():

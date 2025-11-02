@@ -7,6 +7,9 @@ from classes.Point import Point
 from classes.Vehicle import Vehicle
 from display_solution import display_graph
 
+from heuristics.construction import solve as construction
+from heuristics.randomized_construction import solve as randomized_construction
+
 def read_input_file(filepath):
     with open(filepath, 'r') as f:
         lines = [line.strip() for line in f if line.strip()]
@@ -22,15 +25,15 @@ def read_input_file(filepath):
 
     depot = locations[0]
     depot_point = Point(depot[0], depot[1], 0, 1)
-    vehicles = [Vehicle(C, depot_point) for _ in range(n_k)]
+    vehicles = [Vehicle(i, C, depot_point) for i in range(n_k)]
 
     pickups = [(i, loc) for i, loc in enumerate(locations[1: n + 2], start=1)]
     dropoffs = [(i, loc) for i, loc in enumerate(locations[n + 1: 2 * n + 2], start=n + 1)]
 
-    customers = [Customer(Point(pick[1][0], pick[1][1], pick[0], 2), Point(drop[1][0], drop[1][1], drop[0], 3), d) for pick, drop, d in zip(pickups, dropoffs, demands)]
+    customers = [Customer(i, Point(pick[1][0], pick[1][1], pick[0], 2), Point(drop[1][0], drop[1][1], drop[0], 3), d) for i, (pick, drop, d) in enumerate(zip(pickups, dropoffs, demands))]
 
     print(f"At least {to_fullfilled} of {n} requests must be fullfilled by using {n_k} vehicles.")
-    return to_fullfilled, rho, C, vehicles, customers
+    return to_fullfilled, rho, vehicles, customers
 
 def create_graph(depot, customers):
 
@@ -50,7 +53,8 @@ def create_graph(depot, customers):
     #     (depot, c.dropoff, depot.calculate_distance(c.dropoff))
     #     for c in customers
     # ])
-    display_graph(graph)
+    #display_graph(graph)
+    return graph
 
 
 def main():
@@ -61,21 +65,31 @@ def main():
     args = parser.parse_args()
     print(args)
 
-    to_fullfilled, rho, C, vehicles, customers = read_input_file(args.input)
-    create_graph(vehicles[0].position, customers)
+    print("\nSelect a type of heuristic:")
+    print("c: construction heuristic\nrc:  randomized construction heuristic\n TODO: add more")
+
+    flag = True
+    while flag:
+        heuristic_type = input("Enter your choice (c/rc): ").strip().lower()
+        if heuristic_type not in {'c', 'rc'}:
+            print("Invalid input: please select one of: c, rc")
+        else:
+            flag = False
+
+    switcher = {
+        "c": construction,
+        "rc": randomized_construction
+    }
+
+    to_fullfilled, rho, vehicles, customers = read_input_file(args.input)
+    graph = create_graph(vehicles[0].position, customers)
+
+    result = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho)
+    print(result)
 
     return
 
     min_function = math.inf 
-
-    # after each step
-    total = sum(v.path_length for v in vehicles)
-    squares = sum(v.path_length ** 2 for v in vehicles)
-    jain_fairness = (total ** 2) / (len(vehicles) * squares)
-
-    function = total + rho * (1 - jain_fairness)
-
-    print(jain_fairness)
 
 
 
