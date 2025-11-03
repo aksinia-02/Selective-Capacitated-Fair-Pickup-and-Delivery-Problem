@@ -9,7 +9,7 @@ class Vehicle:
         self.position = position
         self.load = 0
         self.path_length = 0
-        self.path = {position.index}
+        self.path = [position]
 
     def __repr__(self):
         return f"Vehicle(capacity={self.capacity}, position={self.position})"
@@ -20,5 +20,12 @@ class Vehicle:
     def add_section_path(self, other: Point):
         section_length = self.position.calculate_distance(other)
         self.path_length  = self.path_length + section_length
-        self.path.add(other.index + 1)
+        self.path.append(other)
         self.position = other
+    
+    def add_section_path_between(self, start: Point, new_location: Point):
+
+        start_index = self.path.index(start)
+        end = self.path[start_index + 1]
+        self.path_length  = start.calculate_distance(new_location) + end.calculate_distance(new_location) - start.calculate_distance(end)
+        self.path.insert(start_index + 1, new_location)

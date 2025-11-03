@@ -45,18 +45,24 @@ def solve(customers, vehicles, to_fullfilled, rho):
         temp_vehicles[i].add_section_path(customers[i].pickup)
         temp_vehicles[i].add_section_path(customers[i].dropoff)
         temp_vehicles[i].add_section_path(depot)
-        #temp_vehicles[i].load = customers[i].goods
-
+        temp_vehicles[i].load = customers[i].goods
     for (i, j), saving in sorted_pairs:
 
-        vehicle_index_i = next((index for index, v in enumerate(temp_vehicles) if i in v.path), None)
-        vehicle_index_j = next((index for index, v in enumerate(temp_vehicles) if j in v.path), None)
+        vehicle_index_i = next((idx for idx, v in enumerate(temp_vehicles) if any(p.index == i for p in v.path)), None)
+        vehicle_index_j = next((idx for idx, v in enumerate(temp_vehicles) if any(p.index == j for p in v.path)), None)
         
-        if vehicle_index_i is not None or vehicle_index_j is not None or vehicle_index_i != vehicle_index_j:
+        if vehicle_index_i is not None and vehicle_index_j is not None and vehicle_index_i != vehicle_index_j:
+            if temp_vehicles[vehicle_index_i].available_capacity() >= temp_vehicles[vehicle_index_j].load:
 
-            temp_vehicles[vehicle_index_i].path_length
-            temp_vehicles = [v for v in temp_vehicles if len(v.path) > 0]
 
+                temp_vehicles[vehicle_index_i].add_section_path_between(customers[vehicle_index_i].pickup, customers[vehicle_index_j].pickup)
+                temp_vehicles[vehicle_index_i].load += customers[vehicle_index_i].goods
+
+                temp_vehicles[vehicle_index_j].path_length = 0
+    temp_vehicles = [v for v in temp_vehicles if v.path_length > 0]
+    for temp_vehicle in temp_vehicles:
+        print(temp_vehicle.path)
+        print(temp_vehicle.load)
             # if temp_vehicles[vehicle_index_i].available_capacity() >= temp_vehicles[vehicle_index_j].load:
             #     temp_vehicles[i].path_length += customers[i].pickup.calculate_distance()
             #     pass
@@ -76,4 +82,4 @@ def solve(customers, vehicles, to_fullfilled, rho):
     #             customer.has_vehicle = True
     #             to_fullfilled -= 1
 
-    return 1
+    return None
