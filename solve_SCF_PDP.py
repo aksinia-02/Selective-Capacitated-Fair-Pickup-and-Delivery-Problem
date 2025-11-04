@@ -9,6 +9,7 @@ from display_solution import display_graph
 
 from heuristics.construction import solve as construction
 from heuristics.randomized_construction import solve as randomized_construction
+from heuristics.local_search import solve as local_search
 
 def read_input_file(filepath):
     with open(filepath, 'r') as f:
@@ -70,15 +71,16 @@ def main():
 
     flag = True
     while flag:
-        heuristic_type = input("Enter your choice (c/rc): ").strip().lower()
-        if heuristic_type not in {'c', 'rc'}:
-            print("Invalid input: please select one of: c, rc")
+        heuristic_type = input("Enter your choice (c/rc/ls): ").strip().lower()
+        if heuristic_type not in {'c', 'rc', 'ls'}:
+            print("Invalid input: please select one of: c, rc, ls")
         else:
             flag = False
 
     switcher = {
         "c": construction,
-        "rc": randomized_construction
+        "rc": randomized_construction,
+        "ls": local_search
     }
 
     to_fullfilled, rho, vehicles, customers = read_input_file(args.input)

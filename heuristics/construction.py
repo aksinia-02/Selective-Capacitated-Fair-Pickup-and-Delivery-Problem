@@ -6,7 +6,7 @@ from classes.Point import Point
 from classes.Customer import Customer
 from classes.Vehicle import Vehicle
 
-from tools import jain_fairness
+from tools import objective_function
 
 
 # def sort_customers(depot: Point, customers: List[Customer]):
