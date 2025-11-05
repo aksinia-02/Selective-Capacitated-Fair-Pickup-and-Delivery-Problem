@@ -8,3 +8,9 @@ def objective_function(vehicles, rho):
     objective = total + rho * (1 - jain_fairness)
 
     return objective
+
+def find_vehicle(solution, node):
+    for v in solution:
+        if node in v.path:
+            return v
+    return None

@@ -30,7 +30,7 @@ class Vehicle:
 
         start_index = self.path.index(start)
         end = self.path[start_index + 1]
-        self.path_length  = start.calculate_distance(new_location) + end.calculate_distance(new_location) - start.calculate_distance(end)
+        self.path_length = self.path_length + start.calculate_distance(new_location) + new_location.calculate_distance(end) - start.calculate_distance(end)
         self.path.insert(start_index + 1, new_location)
 
         # update load history on path
@@ -45,7 +45,42 @@ class Vehicle:
             self.load = self.load_history[current_index]
 
 
-    def replace(self, new_vehicle):
+    def remove_section_path(self, other: Point):
+        index = self.path.index(other)
+        load_change = 0
+        if 0 < index < len(self.path) - 1:
+            start = self.path[index -1]
+            end = self.path[index + 1]
+            self.path_length = self.path_length + start.calculate_distance(end) - start.calculate_distance(other) - other.calculate_distance(end)
+
+            load_change = self.load_history[index] - self.load_history[index - 1]
+        elif index == len(self.path) - 1:
+            start = self.path[index -1]
+            self.path_length = self.path_length - start.calculate_distance(other)
+            self.position = start
+
+            load_change = self.load_history[index] - self.load_history[index - 1]
+        elif index == 0:
+            end = self.path[index + 1]
+            self.path_length = self.path_length - other.calculate_distance(end)
+
+            load_change = self.load_history[index]
+        self.path.pop(index)
+        self.load = self.load - load_change
+        if index < len(self.load_history) - 1:
+            for i in range(index + 1, len(self.load_history)):
+                self.load_history[i] -= load_change
+        self.load_history.pop(index)
+
+
+
+    def replace_point(self, to_replace: Point, new_location: Point, load_change=0):
+        self.add_section_path_between(to_replace, new_location, load_change)
+        self.remove_section_path(to_replace)
+
+
+
+    def replace_vehicle(self, new_vehicle):
         if not isinstance(new_vehicle, type(self)):
             raise TypeError(f"Expected a {type(self).__name__} object, got {type(new_vehicle).__name__}")
 
