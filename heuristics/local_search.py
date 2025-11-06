@@ -1,9 +1,6 @@
-from os import remove
-
 from tools import *
 from heuristics import randomized_construction
 import copy
-import math
 
 
 def solve(customers, vehicles, to_fulfilled, rho, neighborhood_structure="exchange", improvement_strategy="best"):
@@ -29,12 +26,53 @@ def solve(customers, vehicles, to_fulfilled, rho, neighborhood_structure="exchan
 def compute_neighborhood(customers, solution, neighborhood_structure):
     if neighborhood_structure == "exchange":
         neighborhood = compute_exchange_neighborhood(customers, solution)
-    #elif neighborhood_structure == "2":
-    #    neighborhood =
-    #elif neighborhood_structure == "3":
-    #    neighborhood =
+    elif neighborhood_structure == "move":
+        neighborhood = compute_move_neighborhood(customers, solution)
+    elif neighborhood_structure == "2-move":
+        neighborhood = compute_2_move_neighborhood(customers, solution)
     else:
         raise ValueError(f"Unknown neighborhood structure: {neighborhood_structure}")
+
+    return neighborhood
+
+def compute_move_neighborhood(customers, solution):
+    neighborhood = []
+
+    for customer in customers:
+        vehicle_source = find_vehicle(solution, customer.pickup)
+
+        neighbor = copy.deepcopy(solution)
+
+        # remove points from a vehicle path
+        if vehicle_source is not None:
+            v = neighbor[vehicle_source.index]
+            v.remove_section_path(customer.pickup)
+            v.remove_section_path(customer.dropoff)
+            neighborhood.append(neighbor) # solution where points are moved to the set of unassigned customers
+
+        # add points to a vehicle path
+        for vehicle_target in solution:
+            for i in range(0, len(vehicle_target.path) - 1):
+                for j in range(i + 1, len(vehicle_target.path) - 1):
+                    neighbor_ij = copy.deepcopy(neighbor)
+                    v = neighbor_ij[vehicle_target.index]
+                    v.add_section_path_between(v.path[i], customer.pickup, customer.goods)
+                    v.add_section_path_between(v.path[j], customer.dropoff, (-1) * customer.goods)
+                    if is_valid(v):
+                        neighborhood.append(neighbor_ij)
+
+    return neighborhood
+
+def compute_2_move_neighborhood(customers, solution):
+    neighborhood = []
+
+    first_neighborhood = compute_move_neighborhood(customers, solution)
+    for neighbor_i in first_neighborhood:
+        neighborhood.append(neighbor_i)
+        second_neighborhood = compute_move_neighborhood(customers, neighbor_i)
+        for neighbor_j in second_neighborhood:
+            if neighbor_j is not solution:
+                neighborhood.append(neighbor_j)
 
     return neighborhood
 
