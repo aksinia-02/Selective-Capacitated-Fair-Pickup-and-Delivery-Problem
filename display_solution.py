@@ -10,7 +10,7 @@ def get_label(node, nodes_len):
     elif node.type == 2:
         label = f"{node.index}"
     elif node.type == 3:
-        label = f"{node.index}"
+        label = f"{node.index - 50}"
     else:
         label = str(node.index)
     return label
@@ -162,6 +162,8 @@ def generate_color_map(m):
 def display_graph(graph, result):
 
     color_map_edges = generate_color_map(len(result))
+    for i, vehicle in enumerate(result):
+        vehicle.index = i
     color_map_nodes = {1: '#763752', 2: '#99ced6', 3: '#9596c1'}
 
     coloring_nodes = {}
@@ -172,10 +174,6 @@ def display_graph(graph, result):
     for vehicle in result:
         color = color_map_edges.get(vehicle.index + 1)
         path = vehicle.path
-        if len(path) == 4:
-            continue
-        else:
-            print(path)
         for i in range(len(path) - 1):
             u, v = path[i], path[i + 1]
             edge_coloring[(u.index, v.index)] = color
