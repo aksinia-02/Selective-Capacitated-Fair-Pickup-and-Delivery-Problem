@@ -91,7 +91,10 @@ def solve(customers, vehicles, to_fullfilled, rho):
 
         num_to_select = len(vehicles)
 
-        sorted_temp_vehicles = sorted(temp_vehicles, key=lambda v: len(v.path), reverse=True)
+        sorted_temp_vehicles = sorted(
+            temp_vehicles,
+            key=lambda v: (-len(v.path), total_distance(v.path))
+        )
         max_temp_vehicles = sorted_temp_vehicles[:num_to_select]
 
         fullfilled_total = 0
