@@ -25,13 +25,13 @@ def read_input_file(filepath):
     locations = [tuple(map(int, line.split())) for line in lines[loc_line + 1:]]
 
     depot = locations[0]
-    depot_point = Point(depot[0], depot[1], 0, 1)
+    depot_point = Point(depot[0], depot[1], 0, 1, 0)
     vehicles = [Vehicle(i, C, depot_point) for i in range(n_k)]
 
     pickups = [(i, loc) for i, loc in enumerate(locations[1: n + 2], start=1)]
     dropoffs = [(i, loc) for i, loc in enumerate(locations[n + 1: 2 * n + 2], start=n + 1)]
 
-    customers = [Customer(i, Point(pick[1][0], pick[1][1], pick[0], 2), Point(drop[1][0], drop[1][1], drop[0], 3), d) for i, (pick, drop, d) in enumerate(zip(pickups, dropoffs, demands))]
+    customers = [Customer(i, Point(pick[1][0], pick[1][1], pick[0], 2, d), Point(drop[1][0], drop[1][1], drop[0], 3, -d), d) for i, (pick, drop, d) in enumerate(zip(pickups, dropoffs, demands))]
 
     print(f"At least {to_fullfilled} of {n} requests must be fullfilled by using {n_k} vehicles.")
     return to_fullfilled, rho, vehicles, customers
@@ -87,7 +87,9 @@ def main():
     graph = create_graph(vehicles[0].position, customers)
 
     result = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho)
-    print(result)
+    #print(result)
+
+    #display_graph(graph, result)
 
     return
 

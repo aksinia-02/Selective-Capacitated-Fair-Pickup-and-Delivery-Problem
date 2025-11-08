@@ -1,8 +1,6 @@
 from classes.Point import Point
 class Vehicle:
 
-    fullfilled = 0 
-
     def __init__(self, index, capacity, position: Point):
         self.index = index
         self.capacity = capacity
@@ -13,7 +11,7 @@ class Vehicle:
         self.load_history = [self.load]
 
     def __repr__(self):
-        return f"Vehicle(capacity={self.capacity}, position={self.position})"
+        return f"Vehicle(capacity={self.capacity}, load={self.load}, position={self.position}, path={self.path})"
     
     def available_capacity(self):
         return self.capacity - self.load
@@ -26,7 +24,7 @@ class Vehicle:
         self.load_history.append(self.load)
         self.position = other
     
-    def add_section_path_between(self, start: Point, new_location: Point, load_change=0):
+    def add_section_path_after(self, start: Point, new_location: Point, load_change=0):
 
         start_index = self.path.index(start)
         end = self.path[start_index + 1]
@@ -43,6 +41,12 @@ class Vehicle:
         current_index = self.path.index(self.position)
         if current_index >= start_index:
             self.load = self.load_history[current_index]
+
+    def add_section_path_before(self, end: Point, new_location: Point, load_change=0):
+
+        end_index = self.path.index(end)
+        start = self.path[end_index - 1]
+        self.add_section_path_after(start, new_location, load_change)
 
 
     def remove_section_path(self, other: Point):
@@ -91,3 +95,20 @@ class Vehicle:
         self.path_length = new_vehicle.path_length
         self.path = new_vehicle.path
         self.load_history = new_vehicle.load_history
+
+    def get_available_capacity_at_position_x(self, x: Point):
+
+        start_index = self.path.index(x)
+        load = 0
+        for pos in self.path:
+            if pos.type == 2:
+                load += pos.goods
+        return self.capacity - load
+
+    def get_location_before_x(self, x: Point):
+        index = self.path.index(x)
+        return self.path[index - 1]
+
+    def get_location_after_x(self, x: Point):
+        index = self.path.index(x)
+        return self.path[index + 1]

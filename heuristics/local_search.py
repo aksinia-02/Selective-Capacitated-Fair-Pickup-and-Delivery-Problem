@@ -56,8 +56,8 @@ def compute_move_neighborhood(customers, solution):
                 for j in range(i + 1, len(vehicle_target.path) - 1):
                     neighbor_ij = copy.deepcopy(neighbor)
                     v = neighbor_ij[vehicle_target.index]
-                    v.add_section_path_between(v.path[i], customer.pickup, customer.goods)
-                    v.add_section_path_between(v.path[j], customer.dropoff, (-1) * customer.goods)
+                    v.add_section_path_after(v.path[i], customer.pickup, customer.goods)
+                    v.add_section_path_after(v.path[j], customer.dropoff, (-1) * customer.goods)
                     if is_valid(v):
                         neighborhood.append(neighbor_ij)
 
@@ -143,11 +143,11 @@ def swap_pair_in_vehicle(vehicle, cust_a, cust_b):
     if first_visit == p_a:
         vehicle.remove_section_path(p_a)
         vehicle.replace_section_path(p_b, p_a, cust_a.goods)
-        vehicle.add_section_path_between(pred, p_b, cust_b.goods)
+        vehicle.add_section_path_after(pred, p_b, cust_b.goods)
     elif first_visit == p_b:
         vehicle.remove_section_path(p_b)
         vehicle.replace_section_path(p_a, p_b, cust_b.goods)
-        vehicle.add_section_path_between(pred, p_a, cust_a.goods)
+        vehicle.add_section_path_after(pred, p_a, cust_a.goods)
 
     first_visit = min([d_a, d_b], key=lambda x: path.index(x))
     pred = path[path.index(first_visit) - 1]
@@ -155,11 +155,11 @@ def swap_pair_in_vehicle(vehicle, cust_a, cust_b):
     if first_visit == d_a:
         vehicle.remove_section_path(d_a)
         vehicle.replace_section_path(d_b, d_a, (-1) * cust_a.goods)
-        vehicle.add_section_path_between(pred, d_b, (-1) * cust_b.goods)
+        vehicle.add_section_path_after(pred, d_b, (-1) * cust_b.goods)
     elif first_visit == d_b:
         vehicle.remove_section_path(d_b)
         vehicle.replace_section_path(d_a, d_b, (-1) * cust_b.goods)
-        vehicle.add_section_path_between(pred, d_a, (-1) * cust_a.goods)
+        vehicle.add_section_path_after(pred, d_a, (-1) * cust_a.goods)
 
 
 
