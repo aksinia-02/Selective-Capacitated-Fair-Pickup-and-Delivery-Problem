@@ -10,19 +10,19 @@ def get_label(node, nodes_len):
     elif node.type == 2:
         label = f"{node.index}"
     elif node.type == 3:
-        label = f"{node.index - 50}"
+        label = f"{node.index}"
     else:
         label = str(node.index)
     return label
 
-def display_colored_graph(G, coloring, color_map, output_file="graph.html", show_axes= True):
-    """Display the graph with nodes colored based on the assigned coloring."""
+def display_colored_graph(G, coloring_nodes, edge_coloring, color_map_nodes, color_map_edges, output_file="graph.html", show_axes= True):
+    """Display the graph with nodes colored based on the assigned coloring_nodes and edges colored based on edge_coloring."""
 
     net = Network(height="600px", width="100%", bgcolor="#ffffff", font_color="black")
     customers_len = (len(G.nodes) - 1) / 2
 
     for node in G.nodes():
-        color = coloring.get(node.index)
+        color = coloring_nodes.get(node.index)
         x = node.x
         y = node.y
         net.add_node(
@@ -36,9 +36,23 @@ def display_colored_graph(G, coloring, color_map, output_file="graph.html", show
             font={'size': 36, 'face': 'arial', 'vadjust': 0}
         )
 
+    # for u, v in G.edges():
+    #     if u.type == 1 or v.type == 1:
+    #         net.add_edge(u.index, v.index)
+    # print(edge_coloring)
+    # print(color_map_edges)
+
     for u, v in G.edges():
-        if u.type == 1 or v.type == 1:
-            net.add_edge(u.index, v.index)
+        color = edge_coloring.get((u.index, v.index)) or edge_coloring.get((v.index, u.index)) or None
+        if color:
+            net.add_edge(u.index, v.index, color=color, width=10)
+    #     color = color_map_edges.get(1, "#888888")  # default edge color (gray)
+    #     if (u.index, v.index) in color_map_edges:
+    #         color = color_map_edges[(u.index, v.index)]
+    #     elif (v.index, u.index) in color_map_edges:
+    #         color = color_map_edges[(v.index, u.index)]
+
+    #     net.add_edge(u.index, v.index, color=color, width=3)
 
     net.set_options(f"""
     {{
@@ -76,15 +90,15 @@ def display_colored_graph(G, coloring, color_map, output_file="graph.html", show
         box-shadow:0 2px 8px rgba(0,0,0,0.2);
     ">
         <div style="display:flex;align-items:center;margin-bottom:6px;">
-            <div style="width:18px;height:18px;border-radius:50%;background:{color_map.get(1)};margin-right:8px;"></div>
+            <div style="width:18px;height:18px;border-radius:50%;background:{color_map_nodes.get(1)};margin-right:8px;"></div>
             <span>Depot</span>
         </div>
         <div style="display:flex;align-items:center;margin-bottom:6px;">
-            <div style="width:18px;height:18px;border-radius:50%;background:{color_map.get(2)};margin-right:8px;"></div>
+            <div style="width:18px;height:18px;border-radius:50%;background:{color_map_nodes.get(2)};margin-right:8px;"></div>
             <span>Pickup</span>
         </div>
         <div style="display:flex;align-items:center;">
-            <div style="width:18px;height:18px;border-radius:50%;background:{color_map.get(3)};margin-right:8px;"></div>
+            <div style="width:18px;height:18px;border-radius:50%;background:{color_map_nodes.get(3)};margin-right:8px;"></div>
             <span>Dropoff</span>
         </div>
     </div>
@@ -144,24 +158,26 @@ def generate_color_map(m):
     ) for i in range(m)}
     return color_map
 
-# def display_graph(graph):
-#     color_map = generate_color_map(3)
-#     print(color_map)
-
-#     coloring = {}
-#     for node in graph.nodes():
-#         print(color_map.get(node.type))
-#         coloring[node.index] = color_map.get(node.type)
-
-#     display_colored_graph(graph, coloring, color_map)
 
 def display_graph(graph, result):
-    
-    color_map = generate_color_map(3)
-    color_map = {1: '#763752', 2: '#99ced6', 3: '#9596c1'}
 
-    coloring = {}
+    color_map_edges = generate_color_map(len(result))
+    color_map_nodes = {1: '#763752', 2: '#99ced6', 3: '#9596c1'}
+
+    coloring_nodes = {}
     for node in graph.nodes():
-        coloring[node.index] = color_map.get(node.type)
+        coloring_nodes[node.index] = color_map_nodes.get(node.type)
 
-    display_colored_graph(graph, coloring, color_map)
+    edge_coloring = {}
+    for vehicle in result:
+        color = color_map_edges.get(vehicle.index + 1)
+        path = vehicle.path
+        if len(path) == 4:
+            continue
+        else:
+            print(path)
+        for i in range(len(path) - 1):
+            u, v = path[i], path[i + 1]
+            edge_coloring[(u.index, v.index)] = color
+
+    display_colored_graph(graph, coloring_nodes, edge_coloring, color_map_nodes, color_map_edges)

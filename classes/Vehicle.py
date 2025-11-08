@@ -11,7 +11,7 @@ class Vehicle:
         self.load_history = [self.load]
 
     def __repr__(self):
-        return f"Vehicle(capacity={self.capacity}, load={self.load}, position={self.position}, path={self.path})"
+        return f"Vehicle(index={self.index}, capacity={self.capacity}, load={self.load}, position={self.position}, path={self.path})"
     
     def available_capacity(self):
         return self.capacity - self.load

@@ -87,9 +87,8 @@ def main():
     graph = create_graph(vehicles[0].position, customers)
 
     result = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho)
-    #print(result)
 
-    #display_graph(graph, result)
+    display_graph(graph, result)
 
     return
 
