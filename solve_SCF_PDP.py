@@ -10,6 +10,7 @@ from display_solution import display_graph
 from heuristics.construction import solve as construction
 from heuristics.randomized_construction import solve as randomized_construction
 from heuristics.local_search import solve as local_search
+from tools import *
 
 def read_input_file(filepath):
     with open(filepath, 'r') as f:
@@ -88,7 +89,8 @@ def main():
 
     result = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho)
 
-    display_graph(graph, result)
+    obj_func = round(objective_function(result, rho), 2)
+    display_graph(graph, result, obj_func)
 
     return
 

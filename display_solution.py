@@ -15,7 +15,7 @@ def get_label(node, nodes_len):
         label = str(node.index)
     return label
 
-def display_colored_graph(G, coloring_nodes, edge_coloring, color_map_nodes, color_map_edges, output_file="graph.html", show_axes= True):
+def display_colored_graph(G, coloring_nodes, edge_coloring, color_map_nodes, color_map_edges, obj_func, output_file="graph.html", show_axes= True):
     """Display the graph with nodes colored based on the assigned coloring_nodes and edges colored based on edge_coloring."""
 
     net = Network(height="600px", width="100%", bgcolor="#ffffff", font_color="black")
@@ -36,23 +36,10 @@ def display_colored_graph(G, coloring_nodes, edge_coloring, color_map_nodes, col
             font={'size': 36, 'face': 'arial', 'vadjust': 0}
         )
 
-    # for u, v in G.edges():
-    #     if u.type == 1 or v.type == 1:
-    #         net.add_edge(u.index, v.index)
-    # print(edge_coloring)
-    # print(color_map_edges)
-
     for u, v in G.edges():
         color = edge_coloring.get((u.index, v.index)) or edge_coloring.get((v.index, u.index)) or None
         if color:
             net.add_edge(u.index, v.index, color=color, width=10)
-    #     color = color_map_edges.get(1, "#888888")  # default edge color (gray)
-    #     if (u.index, v.index) in color_map_edges:
-    #         color = color_map_edges[(u.index, v.index)]
-    #     elif (v.index, u.index) in color_map_edges:
-    #         color = color_map_edges[(v.index, u.index)]
-
-    #     net.add_edge(u.index, v.index, color=color, width=3)
 
     net.set_options(f"""
     {{
@@ -84,25 +71,34 @@ def display_colored_graph(G, coloring_nodes, edge_coloring, color_map_nodes, col
         background-color:white;
         border:2px solid #ccc;
         border-radius:12px;
-        padding:10px 15px;
-        font-family:Arial;
+        padding:14px 18px;
+        font-family:Arial, sans-serif;
         font-size:16px;
         box-shadow:0 2px 8px rgba(0,0,0,0.2);
     ">
-        <div style="display:flex;align-items:center;margin-bottom:6px;">
-            <div style="width:18px;height:18px;border-radius:50%;background:{color_map_nodes.get(1)};margin-right:8px;"></div>
-            <span>Depot</span>
+        <div style="margin-bottom:10px;">
+            <div style="display:flex;align-items:center;margin-bottom:6px;">
+                <div style="width:18px;height:18px;border-radius:50%;background:{color_map_nodes.get(1)};margin-right:8px;"></div>
+                <span>Depot</span>
+            </div>
+            <div style="display:flex;align-items:center;margin-bottom:6px;">
+                <div style="width:18px;height:18px;border-radius:50%;background:{color_map_nodes.get(2)};margin-right:8px;"></div>
+                <span>Pickup</span>
+            </div>
+            <div style="display:flex;align-items:center;">
+                <div style="width:18px;height:18px;border-radius:50%;background:{color_map_nodes.get(3)};margin-right:8px;"></div>
+                <span>Dropoff</span>
+            </div>
         </div>
-        <div style="display:flex;align-items:center;margin-bottom:6px;">
-            <div style="width:18px;height:18px;border-radius:50%;background:{color_map_nodes.get(2)};margin-right:8px;"></div>
-            <span>Pickup</span>
-        </div>
-        <div style="display:flex;align-items:center;">
-            <div style="width:18px;height:18px;border-radius:50%;background:{color_map_nodes.get(3)};margin-right:8px;"></div>
-            <span>Dropoff</span>
+
+        <div style="border-top:1px solid #ddd;margin:10px 0;"></div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-weight:regular;color:#333;">Objective:</span>
+            <span style="font-weight:bold;color:#763752;">{obj_func:.2f}</span>
         </div>
     </div>
-    """
+"""
 
     html_content = html_content.replace("</body>", legend_html + "\n</body>")
     highlight_js = """
@@ -159,7 +155,7 @@ def generate_color_map(m):
     return color_map
 
 
-def display_graph(graph, result):
+def display_graph(graph, result, obj_func):
 
     color_map_edges = generate_color_map(len(result))
     for i, vehicle in enumerate(result):
@@ -178,4 +174,4 @@ def display_graph(graph, result):
             u, v = path[i], path[i + 1]
             edge_coloring[(u.index, v.index)] = color
 
-    display_colored_graph(graph, coloring_nodes, edge_coloring, color_map_nodes, color_map_edges)
+    display_colored_graph(graph, coloring_nodes, edge_coloring, color_map_nodes, color_map_edges, obj_func)
