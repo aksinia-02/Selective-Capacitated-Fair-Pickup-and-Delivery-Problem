@@ -47,7 +47,7 @@ def merge(vehicle_1, vehicle_2, rho):
         # unselected_locations.remove(random_location)
         # unselected_locations.extend([d for d in dropoffs if d.index == 50 + random_location.index])
         nearest_location = min(feasible, key=lambda loc: vehicle_1.position.calculate_distance(loc))
-        vehicle_1.add_section_path(nearest_location, nearest_location.goods)
+        vehicle_1.add_section_path(nearest_location)
         unselected_locations.remove(nearest_location)
         unselected_locations.extend([d for d in dropoffs if d.index == 50 + nearest_location.index])
 
@@ -66,8 +66,8 @@ def solve(customers, vehicles, to_fullfilled, rho):
     temp_vehicles = [Vehicle(i, vehicles[0].capacity, depot) for i in range(len(customers))]
 
     for i in range(len(customers)):
-        temp_vehicles[i].add_section_path(customers[i].pickup, customers[i].goods)
-        temp_vehicles[i].add_section_path(customers[i].dropoff, -customers[i].goods)
+        temp_vehicles[i].add_section_path(customers[i].pickup)
+        temp_vehicles[i].add_section_path(customers[i].dropoff)
         temp_vehicles[i].add_section_path(depot)
 
     best_objective = float('inf')
@@ -94,16 +94,11 @@ def solve(customers, vehicles, to_fullfilled, rho):
             temp_copy.pop(vehicle_index_j)
 
             new_objective = objective_function(temp_copy, rho)
-            print(f"new: {new_objective}")
-    
-            # Compute current objective
-            print(f"current: {best_objective}")
 
             if new_objective * 0.75 < best_objective:
                 temp_vehicles[vehicle_index_i] = merged_vehicle
                 temp_vehicles.pop(vehicle_index_j)
                 best_objective = new_objective
-                print(f"set new objective: {best_objective}")
 
         num_to_select = len(vehicles)
 
@@ -118,6 +113,6 @@ def solve(customers, vehicles, to_fullfilled, rho):
             fullfilled_total += (len(v.path) - 2)/2
 
         if fullfilled_total >= to_fullfilled:
-            print(f"Not fullfilled customers: {len(customers) - fullfilled_total}")
+            print(f"Not fullfilled customers: {len(customers) - fullfilled_total} with {len(max_temp_vehicles)} vehicles")
             return max_temp_vehicles
     return None

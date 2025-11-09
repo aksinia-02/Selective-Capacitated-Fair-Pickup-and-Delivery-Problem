@@ -6,8 +6,7 @@ import copy
 def solve(customers, vehicles, to_fulfilled, rho, neighborhood_structure="exchange", improvement_strategy="best"):
 
     best_solution = copy.deepcopy(vehicles)
-    randomized_construction.solve(customers, best_solution, to_fulfilled, rho) # initialize best solution
-    print(best_solution)
+    best_solution = randomized_construction.solve(customers, best_solution, to_fulfilled, rho) # initialize best solution
 
     while True:
         neighborhood = compute_neighborhood(customers, best_solution, neighborhood_structure)
@@ -20,7 +19,9 @@ def solve(customers, vehicles, to_fulfilled, rho, neighborhood_structure="exchan
 
     # write new solution into vehicles
     for old_vehicle, new_vehicle in zip(vehicles, best_solution):
-        old_vehicle.replace(new_vehicle)
+        old_vehicle.replace_vehicle(new_vehicle)
+
+    return best_solution
 
 
 
@@ -57,8 +58,8 @@ def compute_move_neighborhood(customers, solution):
                 for j in range(i + 1, len(vehicle_target.path) - 1):
                     neighbor_ij = copy.deepcopy(neighbor)
                     v = neighbor_ij[vehicle_target.index]
-                    v.add_section_path_after(v.path[i], customer.pickup, customer.goods)
-                    v.add_section_path_after(v.path[j], customer.dropoff, (-1) * customer.goods)
+                    v.add_section_path_after(v.path[i], customer.pickup)
+                    v.add_section_path_after(v.path[j], customer.dropoff)
                     if is_valid(v):
                         neighborhood.append(neighbor_ij)
 
@@ -143,24 +144,24 @@ def swap_pair_in_vehicle(vehicle, cust_a, cust_b):
 
     if first_visit == p_a:
         vehicle.remove_section_path(p_a)
-        vehicle.replace_section_path(p_b, p_a, cust_a.goods)
-        vehicle.add_section_path_after(pred, p_b, cust_b.goods)
+        vehicle.replace_section_path(p_b, p_a)
+        vehicle.add_section_path_after(pred, p_b)
     elif first_visit == p_b:
         vehicle.remove_section_path(p_b)
-        vehicle.replace_section_path(p_a, p_b, cust_b.goods)
-        vehicle.add_section_path_after(pred, p_a, cust_a.goods)
+        vehicle.replace_section_path(p_a, p_b)
+        vehicle.add_section_path_after(pred, p_a)
 
     first_visit = min([d_a, d_b], key=lambda x: path.index(x))
     pred = path[path.index(first_visit) - 1]
 
     if first_visit == d_a:
         vehicle.remove_section_path(d_a)
-        vehicle.replace_section_path(d_b, d_a, (-1) * cust_a.goods)
-        vehicle.add_section_path_after(pred, d_b, (-1) * cust_b.goods)
+        vehicle.replace_section_path(d_b, d_a)
+        vehicle.add_section_path_after(pred, d_b)
     elif first_visit == d_b:
         vehicle.remove_section_path(d_b)
-        vehicle.replace_section_path(d_a, d_b, (-1) * cust_b.goods)
-        vehicle.add_section_path_after(pred, d_a, (-1) * cust_a.goods)
+        vehicle.replace_section_path(d_a, d_b)
+        vehicle.add_section_path_after(pred, d_a)
 
 
 

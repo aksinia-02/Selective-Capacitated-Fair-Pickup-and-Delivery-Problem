@@ -11,20 +11,20 @@ class Vehicle:
         self.load_history = [self.load]
 
     def __repr__(self):
-        return f"Vehicle(index={self.index}, capacity={self.capacity}, load={self.load}, position={self.position}, path={self.path})"
+        return f"Vehicle(index={self.index}, capacity={self.capacity}, load={self.load}, position={self.position}, path_length={self.path_length} path={self.path})"
     
     def available_capacity(self):
         return self.capacity - self.load
 
-    def add_section_path(self, other: Point, load_change=0):
+    def add_section_path(self, other: Point):
         section_length = self.position.calculate_distance(other)
         self.path_length  = self.path_length + section_length
         self.path.append(other)
-        self.load += load_change
+        self.load += other.goods
         self.load_history.append(self.load)
         self.position = other
     
-    def add_section_path_after(self, start: Point, new_location: Point, load_change=0):
+    def add_section_path_after(self, start: Point, new_location: Point):
 
         start_index = self.path.index(start)
         end = self.path[start_index + 1]
@@ -32,21 +32,21 @@ class Vehicle:
         self.path.insert(start_index + 1, new_location)
 
         # update load history on path
-        new_load = self.load_history[start_index] + load_change
+        new_load = self.load_history[start_index] + new_location.goods
         self.load_history.insert(start_index + 1, new_load)
         for i in range(start_index + 2, len(self.load_history)):
-            self.load_history[i] += load_change
+            self.load_history[i] += new_location.goods
 
         # update load on current position
         current_index = self.path.index(self.position)
         if current_index >= start_index:
             self.load = self.load_history[current_index]
 
-    def add_section_path_before(self, end: Point, new_location: Point, load_change=0):
+    def add_section_path_before(self, end: Point, new_location: Point):
 
         end_index = self.path.index(end)
         start = self.path[end_index - 1]
-        self.add_section_path_after(start, new_location, load_change)
+        self.add_section_path_after(start, new_location)
 
 
     def remove_section_path(self, other: Point):
@@ -78,8 +78,8 @@ class Vehicle:
 
 
 
-    def replace_point(self, to_replace: Point, new_location: Point, load_change=0):
-        self.add_section_path_between(to_replace, new_location, load_change)
+    def replace_point(self, to_replace: Point, new_location: Point):
+        self.add_section_path_between(to_replace, new_location, new_location.goods)
         self.remove_section_path(to_replace)
 
 

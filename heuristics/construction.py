@@ -51,7 +51,7 @@ def merge(vehicle_1, vehicle_2):
     while len(unselected_locations) != 0:
         feasible = [loc for loc in unselected_locations if vehicle_1.load + loc.goods <= vehicle_1.capacity]
         nearest_location = min(feasible, key=lambda loc: vehicle_1.position.calculate_distance(loc))
-        vehicle_1.add_section_path(nearest_location, nearest_location.goods)
+        vehicle_1.add_section_path(nearest_location)
         unselected_locations.remove(nearest_location)
         unselected_locations.extend([d for d in dropoffs if d.index == 50 + nearest_location.index])
     vehicle_1.add_section_path(depot)
@@ -69,8 +69,8 @@ def solve(customers, vehicles, to_fullfilled, rho):
     temp_vehicles = [Vehicle(i, vehicles[0].capacity, depot) for i in range(len(customers))]
 
     for i in range(len(customers)):
-        temp_vehicles[i].add_section_path(customers[i].pickup, customers[i].goods)
-        temp_vehicles[i].add_section_path(customers[i].dropoff, -customers[i].goods)
+        temp_vehicles[i].add_section_path(customers[i].pickup)
+        temp_vehicles[i].add_section_path(customers[i].dropoff)
         temp_vehicles[i].add_section_path(depot)
 
     best_objective = float('inf')
