@@ -14,3 +14,9 @@ class Point:
 
     def __repr__(self):
         return f"(ind={self.index}, x={self.x}, y={self.y}, type={self.type}, goods={self.goods})"
+
+    def __eq__(self, other):
+        return self.index == other.index and self.x == other.x and self.y == other.y and self.type == other.type and self.goods == other.goods
+
+    def __hash__(self):
+        return hash((self.index, self.x, self.y, self.type, self.goods))

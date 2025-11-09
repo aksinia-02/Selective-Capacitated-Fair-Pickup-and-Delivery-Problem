@@ -144,11 +144,11 @@ def swap_pair_in_vehicle(vehicle, cust_a, cust_b):
 
     if first_visit == p_a:
         vehicle.remove_section_path(p_a)
-        vehicle.replace_section_path(p_b, p_a)
+        vehicle.replace_point(p_b, p_a)
         vehicle.add_section_path_after(pred, p_b)
     elif first_visit == p_b:
         vehicle.remove_section_path(p_b)
-        vehicle.replace_section_path(p_a, p_b)
+        vehicle.replace_point(p_a, p_b)
         vehicle.add_section_path_after(pred, p_a)
 
     first_visit = min([d_a, d_b], key=lambda x: path.index(x))
@@ -156,11 +156,11 @@ def swap_pair_in_vehicle(vehicle, cust_a, cust_b):
 
     if first_visit == d_a:
         vehicle.remove_section_path(d_a)
-        vehicle.replace_section_path(d_b, d_a)
+        vehicle.replace_point(d_b, d_a)
         vehicle.add_section_path_after(pred, d_b)
     elif first_visit == d_b:
         vehicle.remove_section_path(d_b)
-        vehicle.replace_section_path(d_a, d_b)
+        vehicle.replace_point(d_a, d_b)
         vehicle.add_section_path_after(pred, d_a)
 
 
