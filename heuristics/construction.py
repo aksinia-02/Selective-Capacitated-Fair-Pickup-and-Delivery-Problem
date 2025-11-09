@@ -73,7 +73,7 @@ def solve(customers, vehicles, to_fullfilled, rho):
         temp_vehicles[i].add_section_path(customers[i].dropoff, -customers[i].goods)
         temp_vehicles[i].add_section_path(depot)
 
-    counter = 0
+    best_objective = float('inf')
         
     for (i, j), saving in sorted_pairs:
 
@@ -84,10 +84,32 @@ def solve(customers, vehicles, to_fullfilled, rho):
         # print(f"second vehicle: {temp_vehicles[vehicle_index_j].path}\n")
         
         if vehicle_index_i is not None and vehicle_index_j is not None and vehicle_index_i != vehicle_index_j:
-            temp_vehicles[vehicle_index_i] = merge(temp_vehicles[vehicle_index_i], temp_vehicles[vehicle_index_j])
-            temp_vehicles.remove(temp_vehicles[vehicle_index_j])
-            #print(f"merged vehicle: {temp_vehicles[vehicle_index_i].path}\n")
-            counter += 1
+
+            candidate_vehicle_i = copy.deepcopy(temp_vehicles[vehicle_index_i])
+            candidate_vehicle_j = copy.deepcopy(temp_vehicles[vehicle_index_j])
+
+            merged_vehicle = merge(candidate_vehicle_i, candidate_vehicle_j)
+    
+            temp_copy = temp_vehicles.copy()
+            temp_copy[vehicle_index_i] = merged_vehicle
+            temp_copy.pop(vehicle_index_j)
+
+            new_objective = objective_function(temp_copy, rho)
+            print(f"new: {new_objective}")
+    
+            # Compute current objective
+            print(f"current: {best_objective}")
+
+            if new_objective * 0.75 < best_objective:
+                temp_vehicles[vehicle_index_i] = merged_vehicle
+                temp_vehicles.pop(vehicle_index_j)
+                best_objective = new_objective
+                print(f"set new objective: {best_objective}")
+
+
+            # temp_vehicles[vehicle_index_i] = merge(temp_vehicles[vehicle_index_i], temp_vehicles[vehicle_index_j])
+            # temp_vehicles.remove(temp_vehicles[vehicle_index_j])
+            #print(f"merged vehicle ind:{temp_vehicles[vehicle_index_i].index}, {temp_vehicles[vehicle_index_i].path_length}\n")
 
         num_to_select = len(vehicles)
 

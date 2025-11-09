@@ -7,6 +7,7 @@ def solve(customers, vehicles, to_fulfilled, rho, neighborhood_structure="exchan
 
     best_solution = copy.deepcopy(vehicles)
     randomized_construction.solve(customers, best_solution, to_fulfilled, rho) # initialize best solution
+    print(best_solution)
 
     while True:
         neighborhood = compute_neighborhood(customers, best_solution, neighborhood_structure)
