@@ -28,6 +28,8 @@ class Vehicle:
 
         #start_index = self.path.index(start)
         start_index = next(i for i, p in enumerate(self.path) if p.index == start.index)
+        if start_index == len(self.path) - 1:
+            self.add_section_path(new_location)
         end = self.path[start_index + 1]
         self.path_length = self.path_length + start.calculate_distance(new_location) + new_location.calculate_distance(end) - start.calculate_distance(end)
         self.path.insert(start_index + 1, new_location)

@@ -127,11 +127,6 @@ def compute_exchange_neighborhood(customers, solution):
     return neighborhood
 
 
-def is_valid(vehicle):
-    for load in vehicle.load_history:
-        if load > vehicle.capacity:
-            return False
-    return True
 
 def swap_pair_in_vehicle(vehicle, cust_a, cust_b):
     p_a, d_a = cust_a.pickup, cust_a.dropoff

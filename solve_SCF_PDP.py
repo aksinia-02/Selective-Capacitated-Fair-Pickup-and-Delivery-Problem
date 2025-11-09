@@ -9,6 +9,7 @@ from display_solution import display_graph
 
 from heuristics.construction import solve as construction
 from heuristics.randomized_construction import solve as randomized_construction
+from heuristics.pilot_search import solve as pilot_search
 from heuristics.local_search import solve as local_search
 from tools import *
 
@@ -68,19 +69,20 @@ def main():
     print(args)
 
     print("\nSelect a type of heuristic:")
-    print("c: construction heuristic\nrc:  randomized construction heuristic\n TODO: add more")
+    print("c: construction heuristic\nrc: randomized construction heuristic\nps: pilot search\nls: local search\n TODO: add more")
 
     flag = True
     while flag:
-        heuristic_type = input("Enter your choice (c/rc/ls): ").strip().lower()
-        if heuristic_type not in {'c', 'rc', 'ls'}:
-            print("Invalid input: please select one of: c, rc, ls")
+        heuristic_type = input("Enter your choice (c/rc/ps/ls): ").strip().lower()
+        if heuristic_type not in {'c', 'rc', 'ps', 'ls'}:
+            print("Invalid input: please select one of: c, rc, ps, ls")
         else:
             flag = False
 
     switcher = {
         "c": construction,
         "rc": randomized_construction,
+        "ps": pilot_search,
         "ls": local_search
     }
 

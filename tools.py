@@ -14,3 +14,9 @@ def find_vehicle(solution, node):
         if node in v.path:
             return v
     return None
+
+def is_valid(vehicle):
+    for load in vehicle.load_history:
+        if load > vehicle.capacity:
+            return False
+    return True
