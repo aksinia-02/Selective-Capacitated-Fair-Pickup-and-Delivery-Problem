@@ -75,9 +75,13 @@ def solve(customers, vehicles, to_fullfilled, rho):
     remaining_pairs = copy.deepcopy(sorted_pairs)
 
     while len(sorted_pairs) != 0:
+        # if len(remaining_pairs) == 0:
+        #     #print("No pairs left")
+        #     remaining_pairs = copy.deepcopy(sorted_pairs)
         top_k = max(1, int(rho * len(remaining_pairs)))
         (i,j), _ = random.choice(remaining_pairs[:top_k])
         remaining_pairs.remove(((i,j), _))
+        #print(f"remained: {len(remaining_pairs)}")
 
         vehicle_index_i = next((idx for idx, v in enumerate(temp_vehicles) if any(p.index == i for p in v.path)), None)
         vehicle_index_j = next((idx for idx, v in enumerate(temp_vehicles) if any(p.index == j for p in v.path)), None)
@@ -114,5 +118,7 @@ def solve(customers, vehicles, to_fullfilled, rho):
 
         if fullfilled_total >= to_fullfilled:
             print(f"Not fullfilled customers: {len(customers) - fullfilled_total} with {len(max_temp_vehicles)} vehicles")
+            for i, v in enumerate(max_temp_vehicles):
+                v.index = i
             return max_temp_vehicles
     return None

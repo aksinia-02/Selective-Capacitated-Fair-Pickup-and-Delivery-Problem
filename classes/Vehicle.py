@@ -26,7 +26,8 @@ class Vehicle:
     
     def add_section_path_after(self, start: Point, new_location: Point):
 
-        start_index = self.path.index(start)
+        #start_index = self.path.index(start)
+        start_index = next(i for i, p in enumerate(self.path) if p.index == start.index)
         end = self.path[start_index + 1]
         self.path_length = self.path_length + start.calculate_distance(new_location) + new_location.calculate_distance(end) - start.calculate_distance(end)
         self.path.insert(start_index + 1, new_location)
@@ -44,13 +45,15 @@ class Vehicle:
 
     def add_section_path_before(self, end: Point, new_location: Point):
 
-        end_index = self.path.index(end)
+        #end_index = self.path.index(end)
+        end_index = next(i for i, p in enumerate(self.path) if p.index == end.index)
         start = self.path[end_index - 1]
         self.add_section_path_after(start, new_location)
 
 
     def remove_section_path(self, other: Point):
-        index = self.path.index(other)
+        #index = self.path.index(other)
+        index = next(i for i, p in enumerate(self.path) if p.index == other.index)
         load_change = 0
         if 0 < index < len(self.path) - 1:
             start = self.path[index -1]
@@ -79,7 +82,7 @@ class Vehicle:
 
 
     def replace_point(self, to_replace: Point, new_location: Point):
-        self.add_section_path_between(to_replace, new_location, new_location.goods)
+        self.add_section_path_after(to_replace, new_location)
         self.remove_section_path(to_replace)
 
 

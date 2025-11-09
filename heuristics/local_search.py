@@ -128,7 +128,7 @@ def compute_exchange_neighborhood(customers, solution):
 
 
 def is_valid(vehicle):
-    for load in vehicle.loads:
+    for load in vehicle.load_history:
         if load > vehicle.capacity:
             return False
     return True
@@ -170,13 +170,11 @@ def swap_pairs_between_vehicles(v1, v2, cust_a, cust_b):
     p_b, d_b = cust_b.pickup, cust_b.dropoff
 
     if v1 is not None:
-        v1.replace_point(p_a, p_b, cust_b.goods)
-        v1.replace_point(d_a, d_b, (-1) * cust_b.goods)
+        v1.replace_point(p_a, p_b)
+        v1.replace_point(d_a, d_b)
     elif v2 is not None:
-        v2.replace_point(p_b, p_a, cust_a.goods)
-        v2.replace_point(d_b, d_a, (-1) * cust_a.goods)
-
-
+        v2.replace_point(p_b, p_a)
+        v2.replace_point(d_b, d_a)
 
 def select_neighbor(best_solution, neighborhood, improvement_strategy, rho):
     if improvement_strategy == "first":
