@@ -27,7 +27,7 @@ class Vehicle:
     def add_section_path_after(self, start: Point, new_location: Point):
 
         #start_index = self.path.index(start)
-        start_index = next(i for i, p in enumerate(self.path) if p.index == start.index)
+        start_index = next(i for i, p in enumerate(self.path) if p == start)
         if start_index == len(self.path) - 1:
             self.add_section_path(new_location)
         end = self.path[start_index + 1]
@@ -48,14 +48,14 @@ class Vehicle:
     def add_section_path_before(self, end: Point, new_location: Point):
 
         #end_index = self.path.index(end)
-        end_index = next(i for i, p in enumerate(self.path) if p.index == end.index)
+        end_index = next(i for i, p in enumerate(self.path) if p == end)
         start = self.path[end_index - 1]
         self.add_section_path_after(start, new_location)
 
 
     def remove_section_path(self, other: Point):
         #index = self.path.index(other)
-        index = next(i for i, p in enumerate(self.path) if p.index == other.index)
+        index = next(i for i, p in enumerate(self.path) if p == other)
         load_change = 0
         if 0 < index < len(self.path) - 1:
             start = self.path[index -1]
@@ -88,18 +88,6 @@ class Vehicle:
         self.remove_section_path(to_replace)
 
 
-
-    def replace_vehicle(self, new_vehicle):
-        if not isinstance(new_vehicle, type(self)):
-            raise TypeError(f"Expected a {type(self).__name__} object, got {type(new_vehicle).__name__}")
-
-        self.index = new_vehicle.index
-        self.capacity = new_vehicle.capacity
-        self.position = new_vehicle.position
-        self.load = new_vehicle.load
-        self.path_length = new_vehicle.path_length
-        self.path = new_vehicle.path
-        self.load_history = new_vehicle.load_history
 
     def get_available_capacity_at_position_x(self, x: Point):
 

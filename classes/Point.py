@@ -10,7 +10,7 @@ class Point:
 
     def calculate_distance(self, a):
         """Compute Euclidean distance to another Point"""
-        return math.sqrt((a.x - self.x)**2 + (a.y - self.y)**2)
+        return math.ceil(math.sqrt((a.x - self.x)**2 + (a.y - self.y)**2))
 
     def __repr__(self):
         return f"(ind={self.index}, x={self.x}, y={self.y}, type={self.type}, goods={self.goods})"

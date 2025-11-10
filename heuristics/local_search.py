@@ -8,36 +8,37 @@ def solve(customers, vehicles, to_fulfilled, rho, neighborhood_structure="exchan
     best_solution = copy.deepcopy(vehicles)
     best_solution = randomized_construction.solve(customers, best_solution, to_fulfilled, rho) # initialize best solution
 
+    print(f"objective value of first solution: {objective_function(best_solution, rho)}")
+
     while True:
-        neighborhood = compute_neighborhood(customers, best_solution, neighborhood_structure)
+        neighborhood = compute_neighborhood(customers, best_solution, neighborhood_structure, to_fulfilled)
         current_solution = select_neighbor(best_solution, neighborhood, improvement_strategy, rho)
 
         if current_solution is None:
             break
         else:
             best_solution = current_solution
+            print(f"objective value of better solution: {objective_function(best_solution, rho)}")
 
-    # write new solution into vehicles
-    for old_vehicle, new_vehicle in zip(vehicles, best_solution):
-        old_vehicle.replace_vehicle(new_vehicle)
+    print(best_solution)
 
     return best_solution
 
 
 
-def compute_neighborhood(customers, solution, neighborhood_structure):
+def compute_neighborhood(customers, solution, neighborhood_structure, to_fulfilled):
     if neighborhood_structure == "exchange":
         neighborhood = compute_exchange_neighborhood(customers, solution)
     elif neighborhood_structure == "move":
-        neighborhood = compute_move_neighborhood(customers, solution)
+        neighborhood = compute_move_neighborhood(customers, solution, to_fulfilled)
     elif neighborhood_structure == "2-move":
-        neighborhood = compute_2_move_neighborhood(customers, solution)
+        neighborhood = compute_2_move_neighborhood(customers, solution, to_fulfilled)
     else:
         raise ValueError(f"Unknown neighborhood structure: {neighborhood_structure}")
 
     return neighborhood
 
-def compute_move_neighborhood(customers, solution):
+def compute_move_neighborhood(customers, solution, to_fulfilled):
     neighborhood = []
 
     for customer in customers:
@@ -50,7 +51,8 @@ def compute_move_neighborhood(customers, solution):
             v = neighbor[vehicle_source.index]
             v.remove_section_path(customer.pickup)
             v.remove_section_path(customer.dropoff)
-            neighborhood.append(neighbor) # solution where points are moved to the set of unassigned customers
+            if is_valid(v) and is_neighbor_valid(neighbor, to_fulfilled):
+                neighborhood.append(neighbor) # solution where points are moved to the set of unassigned customers
 
         # add points to a vehicle path
         for vehicle_target in solution:
@@ -60,18 +62,18 @@ def compute_move_neighborhood(customers, solution):
                     v = neighbor_ij[vehicle_target.index]
                     v.add_section_path_after(v.path[i], customer.pickup)
                     v.add_section_path_after(v.path[j], customer.dropoff)
-                    if is_valid(v):
+                    if is_valid(v) and is_neighbor_valid(neighbor_ij, to_fulfilled):
                         neighborhood.append(neighbor_ij)
 
     return neighborhood
 
-def compute_2_move_neighborhood(customers, solution):
+def compute_2_move_neighborhood(customers, solution, to_fulfilled):
     neighborhood = []
 
-    first_neighborhood = compute_move_neighborhood(customers, solution)
+    first_neighborhood = compute_move_neighborhood(customers, solution, to_fulfilled)
     for neighbor_i in first_neighborhood:
         neighborhood.append(neighbor_i)
-        second_neighborhood = compute_move_neighborhood(customers, neighbor_i)
+        second_neighborhood = compute_move_neighborhood(customers, neighbor_i, to_fulfilled)
         for neighbor_j in second_neighborhood:
             if neighbor_j is not solution:
                 neighborhood.append(neighbor_j)
@@ -167,7 +169,7 @@ def swap_pairs_between_vehicles(v1, v2, cust_a, cust_b):
     if v1 is not None:
         v1.replace_point(p_a, p_b)
         v1.replace_point(d_a, d_b)
-    elif v2 is not None:
+    if v2 is not None:
         v2.replace_point(p_b, p_a)
         v2.replace_point(d_b, d_a)
 
@@ -198,3 +200,9 @@ def best_improvement(best_solution, neighborhood, rho):
             best_value = val
 
     return best
+
+def is_neighbor_valid(neighbor, to_fulfilled):
+    fulfilled = 0
+    for vehicle in neighbor:
+        fulfilled = fulfilled + len(vehicle.path)/2
+    return fulfilled >= to_fulfilled
