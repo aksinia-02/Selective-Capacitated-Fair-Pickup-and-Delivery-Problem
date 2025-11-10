@@ -69,19 +69,30 @@ def eliminate_sorted_pairs(sorted_pairs, merged_vehicle):
         if not (pair[0][0] in type2_indices and pair[0][1] in type2_indices)
     ]
 
-def solve(customers, vehicles, to_fullfilled, rho):
+def solve(customers, vehicles, to_fullfilled, rho, strategy="best_objective"):
 
-    depot = vehicles[0].position
+    depot = vehicles[0].path[0]
     num_customers = len(customers)
 
     temp_vehicles = [Vehicle(i, vehicles[0].capacity, depot) for i in range(num_customers)]
+    sorted_pairs = calculate_savings(customers, depot)
+
+    for i, vehicle in enumerate(vehicles):
+        if len(vehicle.path) != 1:
+            temp_vehicles[i].path = vehicle.path
+            temp_vehicles[i].position = vehicle.position
+            temp_vehicles[i].load = vehicle.load
+            temp_vehicles[i].path_length = vehicle.path_length
+            temp_vehicles[i].load_history = vehicle.load_history
+            temp_vehicles[i].path = vehicle.path
+            temp_vehicles[i].path = vehicle.path
+            sorted_pairs = eliminate_sorted_pairs(sorted_pairs, temp_vehicles[i])
 
     for i in range(num_customers):
-        temp_vehicles[i].add_section_path(customers[i].pickup)
-        temp_vehicles[i].add_section_path(customers[i].dropoff)
-        temp_vehicles[i].add_section_path(depot)
-
-    sorted_pairs = calculate_savings(customers, depot)
+        if len(temp_vehicles[i].path) == 1:
+            temp_vehicles[i].add_section_path(customers[i].pickup)
+            temp_vehicles[i].add_section_path(customers[i].dropoff)
+            temp_vehicles[i].add_section_path(depot)
 
     while True:
 

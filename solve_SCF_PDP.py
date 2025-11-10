@@ -88,8 +88,6 @@ def main():
 
     return
 
-    min_function = math.inf 
-
 
 
 if __name__ == "__main__":
