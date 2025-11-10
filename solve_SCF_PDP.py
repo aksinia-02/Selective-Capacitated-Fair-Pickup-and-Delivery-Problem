@@ -49,14 +49,6 @@ def create_graph(depot, customers):
         distance = u.calculate_distance(v)
         graph.add_edge(u, v, weight=distance)
 
-    # graph.add_weighted_edges_from([
-    #     (depot, c.pickup, depot.calculate_distance(c.pickup))
-    #     for c in customers
-    # ] + [
-    #     (depot, c.dropoff, depot.calculate_distance(c.dropoff))
-    #     for c in customers
-    # ])
-    #display_graph(graph)
     return graph
 
 
