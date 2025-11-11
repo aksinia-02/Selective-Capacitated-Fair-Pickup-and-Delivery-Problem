@@ -6,11 +6,14 @@ from classes.Customer import Customer
 from classes.Point import Point
 from classes.Vehicle import Vehicle
 from display_solution import display_graph
+from heuristics import greedy_randomized_adaptive_search_procedure
 
 from heuristics.construction import solve as construction
 from heuristics.randomized_construction import solve as randomized_construction
 from heuristics.pilot_search import solve as pilot_search
 from heuristics.local_search import solve as local_search
+from heuristics.variable_neighborhood_descent import solve as variable_neighborhood_descent
+from heuristics.greedy_randomized_adaptive_search_procedure import solve as greedy_randomized_adaptive_search_procedure
 from tools import *
 
 def read_input_file(filepath):
@@ -61,13 +64,13 @@ def main():
     print(args)
 
     print("\nSelect a type of heuristic:")
-    print("c: construction heuristic\nrc: randomized construction heuristic\nps: pilot search\nls: local search\n TODO: add more")
+    print("c: construction heuristic\nrc: randomized construction heuristic\nps: pilot search\nls: local search\nvnd: variable neighborhood descent\ngrasp: greedy randomized adaptive search procedure\n TODO: add more")
 
     flag = True
     while flag:
-        heuristic_type = input("Enter your choice (c/rc/ps/ls): ").strip().lower()
-        if heuristic_type not in {'c', 'rc', 'ps', 'ls'}:
-            print("Invalid input: please select one of: c, rc, ps, ls")
+        heuristic_type = input("Enter your choice (c/rc/ps/ls/vnd/grasp): ").strip().lower()
+        if heuristic_type not in {'c', 'rc', 'ps', 'ls', 'vnd', 'grasp'}:
+            print("Invalid input: please select one of: c, rc, ps, ls, vnd, grasp")
         else:
             flag = False
 
@@ -75,7 +78,9 @@ def main():
         "c": construction,
         "rc": randomized_construction,
         "ps": pilot_search,
-        "ls": local_search
+        "ls": local_search,
+        "vnd": variable_neighborhood_descent,
+        "grasp": greedy_randomized_adaptive_search_procedure
     }
 
     to_fullfilled, rho, vehicles, customers = read_input_file(args.input)
