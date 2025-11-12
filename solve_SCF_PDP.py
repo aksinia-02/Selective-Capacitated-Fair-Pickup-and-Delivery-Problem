@@ -1,6 +1,7 @@
 import argparse
 import itertools
 import networkx as nx
+import time
 
 from classes.Customer import Customer
 from classes.Point import Point
@@ -86,7 +87,13 @@ def main():
     to_fullfilled, rho, vehicles, customers = read_input_file(args.input)
     graph = create_graph(vehicles[0].position, customers)
 
+    start_time = time.time()
+
     result = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho)
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f"Execution time: {elapsed_time:.4f} seconds")
 
     obj_func = round(objective_function(result, rho), 2)
     display_graph(graph, result, obj_func)

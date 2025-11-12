@@ -13,6 +13,16 @@ class Vehicle:
     def __repr__(self):
         return f"Vehicle(index={self.index}, capacity={self.capacity}, load={self.load}, position={self.position}, path_length={self.path_length} path={self.path})"
     
+    def copy(self):
+        copy_vehicle = Vehicle(self.index, self.capacity, self.position)
+        copy_vehicle.load = self.load
+        copy_vehicle.path_length = self.path_length
+        copy_vehicle.path = self.path
+        copy_vehicle.load_history = self.load_history
+        return copy_vehicle
+
+
+    
     def available_capacity(self):
         return self.capacity - self.load
 
