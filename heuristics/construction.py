@@ -1,7 +1,8 @@
-from typing import List, Dict
+from typing import List, Dict, Iterator, Tuple
 import math
 import itertools
 import numpy as np
+import heapq
 
 from classes.Point import Point
 from classes.Customer import Customer
@@ -21,13 +22,32 @@ def precompute_distance_matrix(customers: List[Customer], depot: Point):
     
     return dist_matrix, depot_dist
 
-def calculate_savings_vectorized(dist_matrix, depot_dist):
-    """Vectorized Clarke-Wright savings: S_ij = d(depot,i) + d(depot,j) - d(i,j)."""
-    n = len(depot_dist)
-    i_index, j_index = np.triu_indices(n, 1) # values above the diagonal (unordered pairs (i, j) with 0 <= i < j < n)
-    savings_values = depot_dist[i_index] + depot_dist[j_index] - dist_matrix[i_index, j_index]
-    savings = list(zip(zip(i_index + 1, j_index + 1), savings_values))
-    return sorted(savings, key=lambda x: x[1], reverse=True)
+def savings_generator(customers, depot, customer_to_vehicle, cutoff=None):
+    """
+    heapq saves (i,j) and saving values on the fly without precomputing matrices
+    """
+    heap = []
+    n = len(customers)
+    
+    for i in range(n):
+        for j in range(i+1, n):
+            vi = customer_to_vehicle.get(i+1)
+            vj = customer_to_vehicle.get(j+1)
+            if vi is None or vj is None or vi == vj:
+                continue
+            s = (depot.calculate_distance(customers[i].pickup) + depot.calculate_distance(customers[j].pickup) - customers[i].pickup.calculate_distance(customers[j].pickup))
+            
+            if cutoff:
+                heapq.heappush(heap, (s, i+1, j+1))
+                if len(heap) > cutoff:
+                    heapq.heappop(heap)
+            else:
+                yield (i+1, j+1), s
+    
+    if cutoff:
+        # return in descending order
+        for s, i, j in sorted(heap, key=lambda x: -x[0]):
+            yield (i, j), s
 
 def extract_unique_indices(sorted_pairs):
     seen = set()
@@ -87,6 +107,8 @@ def merge_without_reordering(vehicle_1, vehicle_2, n):
                 merged_vehicle.add_section_path(p)
 
     merged_vehicle.add_section_path(depot)
+    if len(merged_vehicle.path) % 2 == 1:
+        return
 
     return merged_vehicle
 
@@ -103,9 +125,6 @@ def solve(customers, vehicles, to_fullfilled, rho, strategy="pure"):
     depot = vehicles[0].path[0]
     num_customers = len(customers)
 
-    dist_matrix, depot_dist = precompute_distance_matrix(customers, depot)
-    sorted_pairs = calculate_savings_vectorized(dist_matrix, depot_dist)
-
     temp_vehicles = [Vehicle(i, vehicles[0].capacity, depot) for i in range(num_customers)]
     customer_to_vehicle: Dict[int, int] = {}
 
@@ -117,7 +136,9 @@ def solve(customers, vehicles, to_fullfilled, rho, strategy="pure"):
             temp_vehicles[index].load = vehicle.load
             temp_vehicles[index].path_length = vehicle.path_length
             temp_vehicles[index].load_history = vehicle.load_history
-            sorted_pairs = eliminate_sorted_pairs(sorted_pairs, temp_vehicles[index])
+            if temp_vehicles[index].path[-1] != depot:
+                temp_vehicles[index].add_section_path(depot)
+                
             for p in temp_vehicles[index].path:
                 if p.type == 2:
                     customer_to_vehicle[p.index] = index
@@ -141,15 +162,15 @@ def solve(customers, vehicles, to_fullfilled, rho, strategy="pure"):
         best_objective_local = float('inf')
         best_merged_vehicle = None
         merge_i = remove_j = None
+
+        savings_iter = savings_generator(customers, depot, customer_to_vehicle, cutoff=cutoff)
         
-        for (i, j), saving in sorted_pairs[:cutoff]:
+        for (i, j), saving in savings_iter:
 
             vehicle_index_i = customer_to_vehicle.get(i)
             vehicle_index_j = customer_to_vehicle.get(j)
-            if vehicle_index_i is None or vehicle_index_j is None or vehicle_index_i == vehicle_index_j:
-                continue
 
-            merged_vehicle = result = switcher.get(strategy, lambda: "unknown")(temp_vehicles[vehicle_index_i], temp_vehicles[vehicle_index_j], num_customers)
+            merged_vehicle = switcher.get(strategy, lambda: "unknown")(temp_vehicles[vehicle_index_i], temp_vehicles[vehicle_index_j], num_customers)
             #merged_vehicle = merge_without_reordering(temp_vehicles[vehicle_index_i], temp_vehicles[vehicle_index_j], num_customers)
         
             temp_copy = temp_vehicles.copy()
@@ -162,13 +183,14 @@ def solve(customers, vehicles, to_fullfilled, rho, strategy="pure"):
                 best_objective_local = new_objective
                 best_merged_vehicle = merged_vehicle              
                 merge_i, remove_j = vehicle_index_i, vehicle_index_j
+                if len(best_merged_vehicle.path) % 2 == 1:
+                    return
 
         temp_vehicles[merge_i] = best_merged_vehicle
         temp_vehicles[remove_j].path = []
         for p in best_merged_vehicle.path:
             if p.type == 2:
                 customer_to_vehicle[p.index] = best_merged_vehicle.index
-        sorted_pairs = eliminate_sorted_pairs(sorted_pairs, best_merged_vehicle)
 
         max_temp_vehicles = selected = sorted(
             temp_vehicles,
@@ -180,4 +202,6 @@ def solve(customers, vehicles, to_fullfilled, rho, strategy="pure"):
 
         if fullfilled_total >= to_fullfilled:
             print(f"Not fullfilled customers: {num_customers - fullfilled_total}")
+            for i, v in enumerate(max_temp_vehicles):
+                v.index = i
             return max_temp_vehicles
