@@ -30,20 +30,21 @@ class Vehicle:
         start_index = next(i for i, p in enumerate(self.path) if p == start)
         if start_index == len(self.path) - 1:
             self.add_section_path(new_location)
-        end = self.path[start_index + 1]
-        self.path_length = self.path_length + start.calculate_distance(new_location) + new_location.calculate_distance(end) - start.calculate_distance(end)
-        self.path.insert(start_index + 1, new_location)
+        else:
+            end = self.path[start_index + 1]
+            self.path_length = self.path_length + start.calculate_distance(new_location) + new_location.calculate_distance(end) - start.calculate_distance(end)
+            self.path.insert(start_index + 1, new_location)
 
-        # update load history on path
-        new_load = self.load_history[start_index] + new_location.goods
-        self.load_history.insert(start_index + 1, new_load)
-        for i in range(start_index + 2, len(self.load_history)):
-            self.load_history[i] += new_location.goods
+            # update load history on path
+            new_load = self.load_history[start_index] + new_location.goods
+            self.load_history.insert(start_index + 1, new_load)
+            for i in range(start_index + 2, len(self.load_history)):
+                self.load_history[i] += new_location.goods
 
-        # update load on current position
-        current_index = self.path.index(self.position)
-        if current_index >= start_index:
-            self.load = self.load_history[current_index]
+            # update load on current position
+            current_index = self.path.index(self.position)
+            if current_index >= start_index:
+                self.load = self.load_history[current_index]
 
     def add_section_path_before(self, end: Point, new_location: Point):
 
@@ -81,6 +82,70 @@ class Vehicle:
                 self.load_history[i] -= load_change
         self.load_history.pop(index)
 
+    def predict_path_after_remove(self, other: Point, path=None, path_length=None):
+        if path is None:
+            path = self.path
+        if path_length is None:
+            path_length = self.path_length
+        index = next(i for i, p in enumerate(path) if p == other)
+        new_path = path.copy()
+        new_path.pop(index)
+
+        if 0 < index < len(path) - 1:
+            start = path[index - 1]
+            end = path[index + 1]
+            path_length = path_length + start.calculate_distance(end) - start.calculate_distance(other) - other.calculate_distance(end)
+
+        elif index == len(path) - 1:
+            start = path[index - 1]
+            path_length = path_length - start.calculate_distance(other)
+
+        elif index == 0:
+            end = path[index + 1]
+            path_length = path_length - other.calculate_distance(end)
+
+        return new_path, path_length
+
+    def predict_path_after_add_after(self, start: Point, new_location: Point, path=None, path_length=None):
+        if path is None:
+            path = self.path
+        if path_length is None:
+            path_length = self.path_length
+        start_index = next(i for i, p in enumerate(path) if p == start)
+        new_path = path.copy()
+        new_path.insert(start_index + 1, new_location)
+
+        if start_index == len(path) - 1:
+            section_length = self.position.calculate_distance(new_location)
+            return path_length + section_length
+        end = path[start_index + 1]
+
+        return new_path, path_length + start.calculate_distance(new_location) + new_location.calculate_distance(end) - start.calculate_distance(end)
+
+    def predict_path_after_replace(self, to_replace: Point, new_location: Point, path=None, path_length=None):
+        if path is None:
+            path = self.path
+        if path_length is None:
+            path_length = self.path_length
+        index = next(i for i, p in enumerate(path) if p == to_replace)
+        new_path = path.copy()
+        new_path.pop(index)
+        new_path.insert(index, new_location)
+
+        if 0 < index < len(path) - 1:
+            start = path[index - 1]
+            end = path[index + 1]
+            path_length = path_length + start.calculate_distance(new_location) + new_location.calculate_distance(end) - start.calculate_distance(to_replace) - to_replace.calculate_distance(end)
+
+        elif index == len(path) - 1:
+            start = path[index - 1]
+            path_length = path_length - start.calculate_distance(to_replace) + start.calculate_distance(new_location)
+
+        elif index == 0:
+            end = path[index + 1]
+            path_length = path_length - to_replace.calculate_distance(end) + new_location.calculate_distance(end)
+
+        return new_path, path_length
 
 
     def replace_point(self, to_replace: Point, new_location: Point):

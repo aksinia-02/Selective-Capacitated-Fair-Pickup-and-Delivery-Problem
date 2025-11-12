@@ -32,3 +32,13 @@ class ObjectiveTracker:
         self.objective_value = self.compute_objective()
 
         return self.objective_value
+
+    def predict_objective(self, old_lengths, new_lengths):
+        delta_total = sum(n - o for o, n in zip(old_lengths, new_lengths))
+        delta_squares = sum(n ** 2 - o ** 2 for o, n in zip(old_lengths, new_lengths))
+
+        new_total = self.total + delta_total
+        new_squares = self.squares + delta_squares
+
+        new_fairness = (new_total ** 2) / (self.N * new_squares)
+        return new_total + self.rho * (1 - new_fairness)
