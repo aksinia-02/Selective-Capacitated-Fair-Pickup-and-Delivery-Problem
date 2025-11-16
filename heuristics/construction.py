@@ -70,6 +70,7 @@ def total_distance(sequence):
 def merge_with_reordering(vehicle_1, vehicle_2, n):
 
     merged_vehicle_1 = vehicle_1.copy()
+    merged_vehicle_1.path_length = 0
 
     merged_path = vehicle_1.path[1:-1] + vehicle_2.path[1:-1]
 
@@ -183,8 +184,6 @@ def solve(customers, vehicles, to_fullfilled, rho, strategy="pure"):
                 best_objective_local = new_objective
                 best_merged_vehicle = merged_vehicle              
                 merge_i, remove_j = vehicle_index_i, vehicle_index_j
-                if len(best_merged_vehicle.path) % 2 == 1:
-                    return
 
         temp_vehicles[merge_i] = best_merged_vehicle
         temp_vehicles[remove_j].path = []

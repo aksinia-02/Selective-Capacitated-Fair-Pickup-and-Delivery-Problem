@@ -15,6 +15,8 @@ from heuristics.pilot_search import solve as pilot_search
 from heuristics.local_search import solve as local_search
 from heuristics.variable_neighborhood_descent import solve as variable_neighborhood_descent
 from heuristics.greedy_randomized_adaptive_search_procedure import solve as greedy_randomized_adaptive_search_procedure
+from heuristics.tabu_search import solve as tabu_search
+from heuristics.simulated_annealing import solve as simulated_annealing
 from tools import *
 
 def read_input_file(filepath):
@@ -69,9 +71,9 @@ def main():
 
     flag = True
     while flag:
-        heuristic_type = input("Enter your choice (c/rc/ps/ls/vnd/grasp): ").strip().lower()
-        if heuristic_type not in {'c', 'rc', 'ps', 'ls', 'vnd', 'grasp'}:
-            print("Invalid input: please select one of: c, rc, ps, ls, vnd, grasp")
+        heuristic_type = input("Enter your choice (c/rc/ps/ls/vnd/grasp/ts/sa): ").strip().lower()
+        if heuristic_type not in {'c', 'rc', 'ps', 'ls', 'vnd', 'grasp', 'ts', 'sa'}:
+            print("Invalid input: please select one of: c, rc, ps, ls, vnd, grasp, ts, sa")
         else:
             flag = False
 
@@ -81,7 +83,9 @@ def main():
         "ps": pilot_search,
         "ls": local_search,
         "vnd": variable_neighborhood_descent,
-        "grasp": greedy_randomized_adaptive_search_procedure
+        "grasp": greedy_randomized_adaptive_search_procedure,
+        "ts": tabu_search,
+        "sa": simulated_annealing
     }
 
     to_fullfilled, rho, vehicles, customers = read_input_file(args.input)

@@ -40,6 +40,7 @@ def savings_generator(customers, depot, customer_to_vehicle, cutoff=None):
 def merge_with_reordering(vehicle_1, vehicle_2, n):
 
     merged_vehicle_1 = vehicle_1.copy()
+    merged_vehicle_1.path_length = 0
 
     merged_path = vehicle_1.path[1:-1] + vehicle_2.path[1:-1]
 
