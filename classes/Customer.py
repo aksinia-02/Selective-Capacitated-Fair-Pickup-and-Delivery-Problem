@@ -9,4 +9,4 @@ class Customer:
         self.has_vehicle = False
 
     def __repr__(self):
-        return f"Customer(pickup={self.pickup}, dropoff={self.dropoff}, goods={self.goods})"
+        return f"Customer(ind={self.index}, pickup={self.pickup}, dropoff={self.dropoff}, goods={self.goods})"
