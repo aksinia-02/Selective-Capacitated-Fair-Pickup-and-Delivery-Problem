@@ -33,31 +33,10 @@ def reorder_path(vehicle, path, n):
             unselected_locations.remove(nearest_location)
             unselected_locations.extend([d for d in dropoffs if d.index == n + nearest_location.index])
     vehicle.add_section_path(depot)
+    ids = [p.index for p in vehicle.path if p.index != 0]
+    if len(ids) != len(set(ids)):
+            print("❌ Duplicate point IDs found:", [x for x in ids if ids.count(x) > 1])
     return vehicle
-
-def reorder_paths(vehicles, n):
-
-    for i, v in enumerate(vehicles):
-
-        vehicle = Vehicle(v.index, v.capacity, v.position)
-
-        depot = vehicle.path[0]
-
-        unselected_locations = [p for p in v.path if p.type == 2]
-        dropoffs = [p for p in v.path if p.type == 3]
-
-        while unselected_locations:
-            feasible = [loc for loc in unselected_locations if vehicle.load + loc.goods <= vehicle.capacity]
-            if not feasible:
-                unselected_locations.extend([d for d in dropoffs if d.index == n + vehicle.position.index])
-            else:
-                nearest_location = min(feasible, key=lambda loc: vehicle.position.calculate_distance(loc))
-                vehicle.add_section_path(nearest_location)
-                unselected_locations.remove(nearest_location)
-                unselected_locations.extend([d for d in dropoffs if d.index == n + nearest_location.index])
-        vehicle.add_section_path(depot)
-        vehicles[i] = vehicle
-    return vehicles
 
 def swap_two_customers(x, cust1, cust2, veh1, veh2, n):
 
@@ -213,15 +192,16 @@ def solve(customers, vehicles, to_fulfilled, rho):
     global objectiveTracker
     x = construction.solve(customers, vehicles, to_fulfilled, rho)
     x = reorder_paths(x, len(customers))
+    return x
 
-    customer_to_vehicle: Dict[int, int] = {}
+    # customer_to_vehicle: Dict[int, int] = {}
 
-    for i, vehicle in enumerate(x):
-            for p in vehicle.path:
-                if p.type == 2:
-                    customer_to_vehicle[p.index] = i
+    # for i, vehicle in enumerate(x):
+    #         for p in vehicle.path:
+    #             if p.type == 2:
+    #                 customer_to_vehicle[p.index] = i
 
-    objectiveTracker = ObjectiveTracker(x, rho)
+    # objectiveTracker = ObjectiveTracker(x, rho)
 
-    print("Running simulated annealing")
-    return simulated_annealing(x, customers, customer_to_vehicle, len(customers), rho, 0.95, 1e-3, 50000)
+    # print("Running simulated annealing")
+    # return simulated_annealing(x, customers, customer_to_vehicle, len(customers), rho, 0.95, 1e-3, 50000)
