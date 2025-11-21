@@ -22,6 +22,14 @@ def is_valid(vehicle):
             return False
     return True
 
+def is_solution_valid(solution, to_fulfilled):
+    fulfilled = 0
+    for vehicle in solution:
+        if not is_valid(vehicle):
+            return False
+        fulfilled = fulfilled + len(vehicle.path)/2
+    return fulfilled >= to_fulfilled
+
 def reorder_paths(vehicles, n):
 
     for i, v in enumerate(vehicles):
