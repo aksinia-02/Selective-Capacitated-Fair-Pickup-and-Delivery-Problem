@@ -15,7 +15,7 @@ def compute_pickup_relocate_neighbor(solution, customers, improvement_strategy, 
         dropoff_index = next(i for i, p in enumerate(vehicle.path) if p == customer.dropoff)
 
         if dropoff_index >= 4:
-            for i in range(1, dropoff_index):
+            for i in range(0, dropoff_index):
                 if i < pickup_index - 1 or i > pickup_index:
                     pred = vehicle.path[i]
                 else:

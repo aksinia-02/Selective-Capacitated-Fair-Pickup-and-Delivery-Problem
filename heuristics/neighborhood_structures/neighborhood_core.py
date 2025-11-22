@@ -18,7 +18,7 @@ def choose_neighbor(solution, customers, neighborhood_structure, improvement_str
         raise ValueError(f"Unknown neighborhood structure: {neighborhood_structure}")
     return neighbor
 
-# TODO: add neighborhood structures. Ideas:
+# more ideas for neighborhood structures:
 # - swap two pickup points inside a vehicle
 # - swap two dropoff points inside a vehicle
 # - move one (pickup,dropoff)-pair inside a vehicle
