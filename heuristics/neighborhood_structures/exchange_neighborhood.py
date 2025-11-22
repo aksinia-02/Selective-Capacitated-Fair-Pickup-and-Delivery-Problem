@@ -41,16 +41,16 @@ def compute_exchange_neighbor(solution, customers, improvement_strategy, tracker
                 if v_2 is not None:
                     vehicle_j = neighbor[v_2.index]
                 perform_exchange(vehicle_i, vehicle_j, c_1, c_2)
-                if v_1 is not None and v_2 is not None and is_valid(v_1) and is_valid(v_2):
+                if v_1 is not None and v_2 is not None and is_valid(vehicle_i) and is_valid(vehicle_j):
                     tracker.update(v_1.path_length, vehicle_i.path_length)
                     tracker.update(v_2.path_length, vehicle_j.path_length)
                     return neighbor
 
-                elif v_1 is not None and v_2 is None and is_valid(v_1):
+                elif v_1 is not None and v_2 is None and is_valid(vehicle_i):
                     tracker.update(v_1.path_length, vehicle_i.path_length)
                     return neighbor
 
-                elif v_1 is None and v_2 is not None and is_valid(v_2):
+                elif v_1 is None and v_2 is not None and is_valid(vehicle_j):
                     tracker.update(v_2.path_length, vehicle_j.path_length)
                     return neighbor
 
@@ -64,16 +64,16 @@ def compute_exchange_neighbor(solution, customers, improvement_strategy, tracker
             if v_2 is not None:
                 vehicle_j = neighbor[v_2.index]
             perform_exchange(vehicle_i, vehicle_j, c_1, c_2)
-            if v_1 is not None and v_2 is not None and is_valid(v_1) and is_valid(v_2):
+            if v_1 is not None and v_2 is not None and is_valid(vehicle_i) and is_valid(vehicle_j):
                 tracker.update(v_1.path_length, vehicle_i.path_length)
                 tracker.update(v_2.path_length, vehicle_j.path_length)
                 return neighbor
 
-            elif v_1 is not None and v_2 is None and is_valid(v_1):
+            elif v_1 is not None and v_2 is None and is_valid(vehicle_i):
                 tracker.update(v_1.path_length, vehicle_i.path_length)
                 return neighbor
 
-            elif v_1 is None and v_2 is not None and is_valid(v_2):
+            elif v_1 is None and v_2 is not None and is_valid(vehicle_j):
                 tracker.update(v_2.path_length, vehicle_j.path_length)
                 return neighbor
     return None

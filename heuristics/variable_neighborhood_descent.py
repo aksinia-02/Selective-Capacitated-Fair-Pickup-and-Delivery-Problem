@@ -6,7 +6,7 @@ from heuristics import construction
 def solve(customers, initial_solution, to_fulfilled, rho, neighborhood_structures=None, improvement_strategy="best"):
 
     if neighborhood_structures is None:
-        neighborhood_structures = ["exchange", "exchange", "exchange"] # TODO: replace by different neighborhood structures
+        neighborhood_structures = ["pickup_relocate", "dropoff_relocate", "exchange"]
 
     best_solution = copy.deepcopy(initial_solution)
     if not is_solution_valid(best_solution, to_fulfilled):

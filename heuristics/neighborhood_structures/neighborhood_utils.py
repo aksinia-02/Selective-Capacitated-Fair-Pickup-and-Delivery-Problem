@@ -34,6 +34,15 @@ def predict_new_path_length_after_intra_swap(vehicle, cust_a, cust_b):
 
     return length
 
+def predict_new_path_length_after_intra_point_relocate(vehicle, point, pred):
+    length = vehicle.path_length
+    path = vehicle.path
+
+    path, length = vehicle.predict_path_after_remove(point, path, length)
+    path, length = vehicle.predict_path_after_add_after(pred, point, path, length)
+
+    return length
+
 def predict_new_path_lengths_after_inter_swap(v1, v2, cust_a, cust_b):
     p_a, d_a = cust_a.pickup, cust_a.dropoff
     p_b, d_b = cust_b.pickup, cust_b.dropoff
@@ -95,3 +104,7 @@ def swap_pairs_between_vehicles(v1, v2, cust_a, cust_b):
     if v2 is not None:
         v2.replace_point(p_b, p_a)
         v2.replace_point(d_b, d_a)
+
+def relocate_point_in_vehicle(vehicle, point, pred):
+    vehicle.remove_section_path(point)
+    vehicle.add_section_path_after(pred, point)
