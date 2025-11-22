@@ -2,6 +2,7 @@ from classes.ObjectiveTracker import ObjectiveTracker
 from heuristics.neighborhood_structures.dropoff_relocate_neighborhood import compute_dropoff_relocate_neighbor
 from heuristics.neighborhood_structures.exchange_neighborhood import compute_exchange_neighbor
 from heuristics.neighborhood_structures.pickup_relocate_neighborhood import compute_pickup_relocate_neighbor
+from heuristics.neighborhood_structures.remove_and_append_neighborhood import compute_remove_and_append_neighbor
 
 
 def choose_neighbor(solution, customers, neighborhood_structure, improvement_strategy, to_fulfilled, rho):
@@ -14,11 +15,14 @@ def choose_neighbor(solution, customers, neighborhood_structure, improvement_str
         neighbor = compute_pickup_relocate_neighbor(solution, customers, improvement_strategy, tracker)
     elif neighborhood_structure == "dropoff_relocate":
         neighbor = compute_dropoff_relocate_neighbor(solution, customers, improvement_strategy, tracker)
+    elif neighborhood_structure == "remove_and_append":
+        neighbor = compute_remove_and_append_neighbor(solution, customers, improvement_strategy, tracker)
     else:
         raise ValueError(f"Unknown neighborhood structure: {neighborhood_structure}")
     return neighbor
 
 # more ideas for neighborhood structures:
+# - remove and append + relocate pickup point
 # - swap two pickup points inside a vehicle
 # - swap two dropoff points inside a vehicle
 # - move one (pickup,dropoff)-pair inside a vehicle
