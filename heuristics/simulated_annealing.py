@@ -148,10 +148,10 @@ def random_choose_swap_two_customers(x, customers, customer_to_vehicle, n):
 def estimate_average_delta(x, customers, customer_to_vehicle, n, k=30, rho=1):
 
     deltas = []
+    f_old = ObjectiveTracker(x, rho).compute_objective()
 
     for _ in range(k):
         x_new = random_choose_swap_two_customers(x, customers, customer_to_vehicle, n)
-        f_old = ObjectiveTracker(x, rho).compute_objective()
         f_new = ObjectiveTracker(x_new, rho).compute_objective()
         delta = f_new - f_old
         if delta > 0:
@@ -167,7 +167,7 @@ def compute_initial_temperature(x, customers, customer_to_vehicle, n, rho=1, P0=
     Computes the initial temperature T_init for SA.
     P0 = initial acceptance probability for worse moves (0.03 = 3%)
     """
-    delta_avg = estimate_average_delta(x, customers, customer_to_vehicle, n, k=3, rho=rho)
+    delta_avg = estimate_average_delta(x, customers, customer_to_vehicle, n, k=50, rho=rho)
     T_init = -delta_avg / math.log(P0)
     return T_init
 
