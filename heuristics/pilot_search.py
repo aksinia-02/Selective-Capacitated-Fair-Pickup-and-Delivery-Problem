@@ -4,6 +4,15 @@ import copy
 
 
 def solve(customers, vehicles, to_fulfilled, rho, strategy="light"):
+    """
+    This function solves the heuristic problem using pilot search.
+
+    customers: is a list of customer objects, each customer object contains information about a customer request.
+    initial_solution: the initial solution of the heuristic problem. (a list of vehicle objects)
+    to_fulfilled: the number of requests that need to be fulfilled.
+    rho: the fairness weight.
+    strategy: "light" or "intensive". The light variant is much faster, but the intensive strategy yields better results.
+    """
 
     x = copy.deepcopy(vehicles)
     x_best = None
@@ -25,7 +34,16 @@ def solve(customers, vehicles, to_fulfilled, rho, strategy="light"):
             return x_best
     return x
 
+
 def satisfy_one_more_customer(solution, customers, strategy):
+    """
+    This function satisfies one more customer request depending on the strategy.
+
+    solution: the incomplete solution of the heuristic problem. (a list of vehicle objects)
+    customers: is a list of customer objects, each customer object contains information about a customer request.
+    strategy: "light" or "intensive".
+    """
+
     if strategy == "light":
         return satisfy_one_more_customer_light(solution, customers)
     elif strategy == "intensive":
@@ -33,7 +51,15 @@ def satisfy_one_more_customer(solution, customers, strategy):
     else:
         raise ValueError(f"Unknown strategy: {strategy}")
 
+
 def is_complete(solution, to_fulfilled):
+    """
+    This function returns whether enough customer requests are fulfilled in order to be a complete solution.
+
+    solution: the current solution of the heuristic problem to be checked. (a list of vehicle objects)
+    to_fulfilled: the number of requests that need to be fulfilled.
+    """
+
     fulfilled = 0
     for v in solution:
         for p in v.path:
@@ -43,6 +69,15 @@ def is_complete(solution, to_fulfilled):
 
 
 def satisfy_one_more_customer_light(solution, customers):
+    """
+    This function satisfies one more customer request following the light strategy.
+    The next unfulfilled customer request is simply appended to each vehicle. Therefore, this function
+    returns len(solution) different solutions in C.
+
+    solution: the incomplete solution of the heuristic problem. (a list of vehicle objects)
+    customers: is a list of customer objects, each customer object contains information about a customer request.
+    """
+
     C = []
     for customer in customers:
         if find_vehicle(solution, customer.pickup) is None:
@@ -57,7 +92,18 @@ def satisfy_one_more_customer_light(solution, customers):
             return C
     return C
 
+
 def satisfy_one_more_customer_intensive(solution, customers):
+    """
+    This function satisfies one more customer request following the intensive strategy.
+    From each unfulfilled customer request the dropoff point is simply appended to each vehicle and the pickup point is
+    placed at every possible space before the dropoff point. Therefore, this function
+    returns len(customers) * len(solution) * len(vehicle.path) different solutions in C.
+
+    solution: the incomplete solution of the heuristic problem. (a list of vehicle objects)
+    customers: is a list of customer objects, each customer object contains information about a customer request.
+    """
+
     C = []
     for customer in customers:
         if find_vehicle(solution, customer.pickup) is None:
@@ -72,7 +118,16 @@ def satisfy_one_more_customer_intensive(solution, customers):
                         C.append(c)
     return C
 
+
 def is_prefix(unfinished_solution, solution):
+    """
+    This function returns whether unfinished solution is a prefix of solution.
+    Unfinished solution is a prefix of solution if every position of each point in every path is the same as in solution.
+
+    unfinished_solution: the incomplete solution of the heuristic problem. (a list of vehicle objects)
+    solution: The complete solution returned by the greedy construction heuristic.
+    """
+
     for v_i in unfinished_solution:
         for v_j in solution:
             if not all(a == b for a, b in zip(v_i.path, v_j.path)):

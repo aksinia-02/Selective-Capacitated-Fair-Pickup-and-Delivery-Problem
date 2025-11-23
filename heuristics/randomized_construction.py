@@ -81,7 +81,7 @@ def merge_without_reordering(vehicle_1, vehicle_2, n):
 
     return merged_vehicle
 
-def solve(customers, vehicles, to_fullfilled, rho, strategy="pure"):
+def solve(customers, vehicles, to_fulfilled, rho, strategy="pure"):
 
     depot = vehicles[0].path[0]
     num_customers = len(customers)
@@ -157,11 +157,11 @@ def solve(customers, vehicles, to_fullfilled, rho, strategy="pure"):
             key=lambda v: (-len(v.path), sum(a.calculate_distance(b) for a, b in zip(v.path, v.path[1:])))
         )[:len(vehicles)]
 
-        fullfilled_total = sum((len(v.path) - 2) / 2 for v in selected)
-        print(f"Fullfilled: {fullfilled_total}")
+        fulfilled_total = sum((len(v.path) - 2) / 2 for v in selected)
+        print(f"Fulfilled: {fulfilled_total}")
 
-        if fullfilled_total >= to_fullfilled:
-            print(f"Not fullfilled customers: {num_customers - fullfilled_total}")
+        if fulfilled_total >= to_fulfilled:
+            print(f"Not fulfilled customers: {num_customers - fulfilled_total}")
             for i, v in enumerate(max_temp_vehicles):
                 v.index = i
             return max_temp_vehicles

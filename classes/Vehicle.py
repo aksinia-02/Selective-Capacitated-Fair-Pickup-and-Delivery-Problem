@@ -1,7 +1,23 @@
 from classes.Point import Point
+
 class Vehicle:
+    """
+    Objects of this class represent vehicles. All vehicles together represent a solution for the problem.
+    """
 
     def __init__(self, index, capacity, position: Point):
+        """
+        This function defines a Vehicle object.
+
+        index: a unique identifier for the vehicle.
+        capacity: capacity of the vehicle.
+        position: current position of the vehicle.
+        load: load of the vehicle at position.
+        path_length: total path length of the vehicle computed by the euclidean distance.
+        path: list of points (typically starts and ends with a type 1 point and has other points in between).
+        load_history: history of load of the vehicle (for each point of the path the current load).
+        """
+
         self.index = index
         self.capacity = capacity
         self.position = position
@@ -10,10 +26,16 @@ class Vehicle:
         self.path = [position]
         self.load_history = [self.load]
 
+
     def __repr__(self):
         return f"Vehicle(index={self.index}, capacity={self.capacity}, load={self.load}, position={self.position}, path_length={self.path_length} path={self.path})"
-    
+
+
     def copy(self):
+        """
+        This function returns a copy of the Vehicle object.
+        """
+
         copy_vehicle = Vehicle(self.index, self.capacity, self.position)
         copy_vehicle.load = self.load
         copy_vehicle.path_length = self.path_length
@@ -22,21 +44,39 @@ class Vehicle:
         return copy_vehicle
 
 
-    
     def available_capacity(self):
+        """
+        This function returns the current available capacity of the Vehicle object.
+        """
+
         return self.capacity - self.load
 
+
     def add_section_path(self, other: Point):
+        """
+        This function adds a new point at the end of the path of this vehicle.
+        The path, path_length, load, load_history and position are updated accordingly.
+
+        other: the new point to be added.
+        """
+
         section_length = self.position.calculate_distance(other)
         self.path_length  = self.path_length + section_length
         self.path.append(other)
         self.load += other.goods
         self.load_history.append(self.load)
         self.position = other
-    
-    def add_section_path_after(self, start: Point, new_location: Point):
 
-        #start_index = self.path.index(start)
+
+    def add_section_path_after(self, start: Point, new_location: Point):
+        """
+        This function adds a new point right after another point of the path of this vehicle.
+        The path, path_length, load, load_history and position are updated accordingly.
+
+        start: the point after which to add the new point.
+        new_location: the new point to be added.
+        """
+
         start_index = next(i for i, p in enumerate(self.path) if p == start)
         if start_index == len(self.path) - 1:
             self.add_section_path(new_location)
@@ -56,16 +96,29 @@ class Vehicle:
             if current_index >= start_index:
                 self.load = self.load_history[current_index]
 
-    def add_section_path_before(self, end: Point, new_location: Point):
 
-        #end_index = self.path.index(end)
+    def add_section_path_before(self, end: Point, new_location: Point):
+        """
+        This function adds a new point right before another point of the path of this vehicle.
+        The path, path_length, load, load_history and position are updated accordingly.
+
+        end: the point before which to add the new point.
+        new_location: the new point to be added.
+        """
+
         end_index = next(i for i, p in enumerate(self.path) if p == end)
         start = self.path[end_index - 1]
         self.add_section_path_after(start, new_location)
 
 
     def remove_section_path(self, other: Point):
-        #index = self.path.index(other)
+        """
+        This function removes a point from the path of this vehicle.
+        The path, path_length, load, load_history and position are updated accordingly.
+
+        other: the point to be removed.
+        """
+
         index = next(i for i, p in enumerate(self.path) if p == other)
         load_change = 0
         if 0 < index < len(self.path) - 1:
@@ -92,7 +145,18 @@ class Vehicle:
                 self.load_history[i] -= load_change
         self.load_history.pop(index)
 
+
     def predict_path_after_remove(self, other: Point, path=None, path_length=None):
+        """
+        This function returns the path and the length of the path that would be the result of removing a point
+        from the path.
+        This function does not change this object.
+
+        other: the point to be removed.
+        path: the path where the point should be removed from (if None, the path of this vehicle will be used for computation).
+        path_length: the length of the path where the point should be removed from.
+        """
+
         if path is None:
             path = self.path
         if path_length is None:
@@ -116,7 +180,19 @@ class Vehicle:
 
         return new_path, path_length
 
+
     def predict_path_after_add_after(self, start: Point, new_location: Point, path=None, path_length=None):
+        """
+        This function returns the path and the length of the path that would be the result of adding a point
+        to the path right after the point start.
+        This function does not change this object.
+
+        start: the point after which to add the new point.
+        new_location: the new point to be added.
+        path: the path where the point should be added to (if None, the path of this vehicle will be used for computation).
+        path_length: the length of the path where the point should be added to.
+        """
+
         if path is None:
             path = self.path
         if path_length is None:
@@ -132,7 +208,19 @@ class Vehicle:
 
         return new_path, path_length + start.calculate_distance(new_location) + new_location.calculate_distance(end) - start.calculate_distance(end)
 
+
     def predict_path_after_replace(self, to_replace: Point, new_location: Point, path=None, path_length=None):
+        """
+        This function returns the path and the length of the path that would be the result of replacing a point
+        with another one in the path.
+        This function does not change this object.
+
+        to_replace: the point to be replaced.
+        new_location: the new point to replace the other one with.
+        path: the path where the point should be replaced (if None, the path of this vehicle will be used for computation).
+        path_length: the length of the path where the point should be replaced.
+        """
+
         if path is None:
             path = self.path
         if path_length is None:
@@ -159,6 +247,14 @@ class Vehicle:
 
 
     def replace_point(self, to_replace: Point, new_location: Point):
+        """
+        This function replaces a point in the path of this vehicle by another point.
+        The path, path_length, load, load_history and position are updated accordingly.
+
+        to_replace: the point to be replaced.
+        new_location: the new point to replace the other one with.
+        """
+
         self.add_section_path_after(to_replace, new_location)
         self.remove_section_path(to_replace)
 

@@ -23,11 +23,11 @@ def read_input_file(filepath):
     with open(filepath, 'r') as f:
         lines = [line.strip() for line in f if line.strip()]
 
-    n, n_k, C, to_fullfilled = map(int, lines[0].split()[:4])
+    n, n_k, C, to_fulfilled = map(int, lines[0].split()[:4])
     rho = float(lines[0].split()[4])
     
-    demants_line = lines.index("# demands")
-    demands = list(map(int, lines[demants_line + 1].split()))
+    demands_line = lines.index("# demands")
+    demands = list(map(int, lines[demands_line + 1].split()))
 
     loc_line = lines.index("# request locations")
     locations = [tuple(map(int, line.split())) for line in lines[loc_line + 1:]]
@@ -41,8 +41,8 @@ def read_input_file(filepath):
 
     customers = [Customer(i, Point(pick[1][0], pick[1][1], pick[0], 2, d), Point(drop[1][0], drop[1][1], drop[0], 3, -d), d) for i, (pick, drop, d) in enumerate(zip(pickups, dropoffs, demands))]
 
-    print(f"At least {to_fullfilled} of {n} requests must be fullfilled by using {n_k} vehicles.")
-    return to_fullfilled, rho, vehicles, customers
+    print(f"At least {to_fulfilled} of {n} requests must be fulfilled by using {n_k} vehicles.")
+    return to_fulfilled, rho, vehicles, customers
 
 def create_graph(depot, customers):
 

@@ -1,7 +1,21 @@
 import math
 
 class Point:
+    """
+    This class represents a Point object.
+    """
+
     def __init__(self, x, y, index, type, goods):
+        """
+        This function defines a Point object.
+
+        x, y: the coordinates of the point.
+        index: a unique identifier for the point.
+        type: the type of point. (1 is the depot, 2 is a pickup point and 3 is a dropoff point)
+        goods: if the point is a pickup point, this is the amount of goods. If the point is a dropoff,
+                this is the negative amount of goods.
+        """
+
         self.x = x
         self.y = y
         self.index = index

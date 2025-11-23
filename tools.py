@@ -2,6 +2,10 @@ import math
 from classes.Vehicle import Vehicle
 
 def objective_function(vehicles, rho):
+    """
+    This function computes and returns the objective value of a solution.
+    """
+
     total = sum(v.path_length for v in vehicles)
     squares = sum(v.path_length ** 2 for v in vehicles)
     jain_fairness = (total ** 2) / (len(vehicles) * squares)
@@ -10,19 +14,33 @@ def objective_function(vehicles, rho):
 
     return objective
 
+
 def find_vehicle(solution, node):
+    """
+    returns the vehicle containing node in its path if it exists.
+    """
+
     for v in solution:
         if node in v.path:
             return v
     return None
 
+
 def is_valid(vehicle):
+    """
+    checks whether a vehicle is valid.
+    """
+
     for load in vehicle.load_history:
         if load > vehicle.capacity:
             return False
     return True
 
 def is_solution_valid(solution, to_fulfilled):
+    """
+    checks whether a solution is valid.
+    """
+
     fulfilled = 0
     for vehicle in solution:
         if not is_valid(vehicle):

@@ -3,6 +3,16 @@ import copy
 from heuristics.neighborhood_structures.neighborhood_utils import *
 
 def compute_exchange_neighbor(solution, customers, improvement_strategy, tracker):
+    """
+    This function returns a neighbor of the exchange neighborhood depending on the improvement_strategy.
+    (two different customer request pairs are simply swapped)
+
+    solution: the solution of the heuristic problem. (a list of vehicle objects)
+    customers: is a list of customer objects, each customer object contains information about a customer request.
+    improvement_strategy: the improvement strategy. Valid values are: "best" and "first".
+    tracker: this object is used to efficiently track the quality of different neighbors.
+    """
+
     stack = []
 
     for i, customer_i in enumerate(customers):
@@ -78,7 +88,15 @@ def compute_exchange_neighbor(solution, customers, improvement_strategy, tracker
                 return neighbor
     return None
 
+
 def perform_exchange(vehicle_i, vehicle_j, customer_i, customer_j):
+    """
+    This function performs the exchange.
+
+    vehicle_i, vehicle_j: vehicle objects. If one is None, a fulfilled customer request is swapped with an unfulfilled one.
+    customer_i, customer_j: customer objects, each customer object contains information about a customer request.
+    """
+
     # only points of customer_i are in a vehicle path
     if vehicle_i is not None and vehicle_j is None:
         swap_pairs_between_vehicles(vehicle_i, None, customer_i, customer_j)

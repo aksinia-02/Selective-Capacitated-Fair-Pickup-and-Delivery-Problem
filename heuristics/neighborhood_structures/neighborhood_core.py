@@ -6,6 +6,18 @@ from heuristics.neighborhood_structures.remove_and_append_neighborhood import co
 
 
 def choose_neighbor(solution, customers, neighborhood_structure, improvement_strategy, to_fulfilled, rho):
+    """
+    This function returns a neighbor of solution depending on the choice of neighborhood_structure and improvement_strategy.
+
+    solution: the solution of the heuristic problem. (a list of vehicle objects)
+    customers: is a list of customer objects, each customer object contains information about a customer request.
+    neighborhood_structure: the structure of the neighborhood. Valid values are "exchange", "pickup_relocate",
+        "dropoff_relocate" and "remove_and_append".
+    improvement_strategy: the improvement strategy. Valid values are: "best" and "first".
+    to_fulfilled: the number of requests that need to be fulfilled.
+    rho: the fairness weight.
+    """
+
     tracker = ObjectiveTracker(solution, rho)
     if improvement_strategy != "first" and improvement_strategy != "best":
         raise ValueError(f"Unknown improvement strategy: {improvement_strategy}")

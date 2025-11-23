@@ -3,6 +3,16 @@ import copy
 from heuristics.neighborhood_structures.neighborhood_utils import *
 
 def compute_remove_and_append_neighbor(solution, customers, improvement_strategy, tracker):
+    """
+    This function returns a neighbor of the remove_and_append neighborhood depending on the improvement_strategy.
+    (one pickup and dropoff point removed from a vehicle and appended to another vehicle)
+
+    solution: the solution of the heuristic problem. (a list of vehicle objects)
+    customers: is a list of customer objects, each customer object contains information about a customer request.
+    improvement_strategy: the improvement strategy. Valid values are: "best" and "first".
+    tracker: this object is used to efficiently track the quality of different neighbors.
+    """
+
     stack = []
 
     for customer in customers:
@@ -44,21 +54,15 @@ def compute_remove_and_append_neighbor(solution, customers, improvement_strategy
     return None
 
 
-def predict_new_path_lengths_after_remove_and_append(vehicle, destination_vehicle, customer):
-    vehicle_path_length = vehicle.path_length
-    path = vehicle.path
-    path, vehicle_path_length = vehicle.predict_path_after_remove(customer.pickup, path, vehicle_path_length)
-    path, vehicle_path_length = vehicle.predict_path_after_remove(customer.dropoff, path, vehicle_path_length)
-
-    destination_vehicle_path_length = destination_vehicle.path_length
-    path = destination_vehicle.path
-    path, destination_vehicle_path_length = destination_vehicle.predict_path_after_add_after(path[-2], customer.pickup, path, destination_vehicle_path_length)
-    path, destination_vehicle_path_length = destination_vehicle.predict_path_after_add_after(path[-2], customer.dropoff, path, destination_vehicle_path_length)
-
-    return vehicle_path_length, destination_vehicle_path_length
-
-
 def perform_remove_and_append(vehicle, destination_vehicle, customer):
+    """
+    This function performs the remove and append action.
+
+    vehicle: the vehicle object from which a request is removed.
+    destination_vehicle: the vehicle object to which a request is appended.
+    customer: customer object containing information about a customer request.
+    """
+
     vehicle.remove_section_path(customer.pickup)
     vehicle.remove_section_path(customer.dropoff)
     destination_vehicle.add_section_path_after(destination_vehicle.path[-2], customer.pickup)

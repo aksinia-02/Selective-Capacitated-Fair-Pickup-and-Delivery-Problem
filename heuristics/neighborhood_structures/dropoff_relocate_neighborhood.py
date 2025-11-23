@@ -3,6 +3,16 @@ import copy
 from heuristics.neighborhood_structures.neighborhood_utils import *
 
 def compute_dropoff_relocate_neighbor(solution, customers, improvement_strategy, tracker):
+    """
+    This function returns a neighbor of the dropoff_relocate neighborhood depending on the improvement_strategy.
+    (one dropoff point is relocated inside a vehicle)
+
+    solution: the solution of the heuristic problem. (a list of vehicle objects)
+    customers: is a list of customer objects, each customer object contains information about a customer request.
+    improvement_strategy: the improvement strategy. Valid values are: "best" and "first".
+    tracker: this object is used to efficiently track the quality of different neighbors.
+    """
+
     stack = []
 
     for customer in customers:
