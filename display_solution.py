@@ -15,7 +15,7 @@ def get_label(node, nodes_len):
         label = str(node.index)
     return label
 
-def display_colored_graph(G, coloring_nodes, edge_coloring, color_map_nodes, color_map_edges, obj_func, output_file="graph.html", show_axes= True):
+def display_colored_graph(G, coloring_nodes, edge_coloring, color_map_nodes, color_map_edges, obj_func, func_name, output_file="graph.html", show_axes= True):
     """Display the graph with nodes colored based on the assigned coloring_nodes and edges colored based on edge_coloring."""
 
     net = Network(height="600px", width="100%", bgcolor="#ffffff", font_color="black")
@@ -76,6 +76,13 @@ def display_colored_graph(G, coloring_nodes, edge_coloring, color_map_nodes, col
         font-size:16px;
         box-shadow:0 2px 8px rgba(0,0,0,0.2);
     ">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-weight:bold;color:#763752;">{func_name}</span>
+        </div>
+
+        <div style="border-top:1px solid #ddd;margin:10px 0;"></div>
+
         <div style="margin-bottom:10px;">
             <div style="display:flex;align-items:center;margin-bottom:6px;">
                 <div style="width:18px;height:18px;border-radius:50%;background:{color_map_nodes.get(1)};margin-right:8px;"></div>
@@ -155,7 +162,7 @@ def generate_color_map(m):
     return color_map
 
 
-def display_graph(graph, result, obj_func):
+def display_graph(graph, result, obj_func, func_name):
 
     color_map_edges = generate_color_map(len(result))
     for i, vehicle in enumerate(result):
@@ -174,4 +181,4 @@ def display_graph(graph, result, obj_func):
             u, v = path[i], path[i + 1]
             edge_coloring[(u.index, v.index)] = color
 
-    display_colored_graph(graph, coloring_nodes, edge_coloring, color_map_nodes, color_map_edges, obj_func)
+    display_colored_graph(graph, coloring_nodes, edge_coloring, color_map_nodes, color_map_edges, obj_func, func_name)

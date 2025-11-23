@@ -3,6 +3,8 @@ from heuristics import construction
 from typing import Dict
 import random
 from classes.Vehicle import Vehicle
+import math
+import copy
 
 from classes.ObjectiveTracker import ObjectiveTracker
 
@@ -16,76 +18,115 @@ def group_customers_by_vehicle(customer_to_vehicle):
 
     return vehicle_to_customers
 
-def reorder_path(vehicle, path, n):
+def best_insertion(vehicle, customer):
 
-    depot = vehicle.path[0]
+    path = vehicle.path
 
-    unselected_locations = [p for p in path if p.type == 2]
-    dropoffs = [p for p in path if p.type == 3]
+    #print(f"path: {path}")
+    #print(f"to insert: {customer.pickup}, {customer.dropoff}")
 
-    while unselected_locations:
-        feasible = [loc for loc in unselected_locations if vehicle.load + loc.goods <= vehicle.capacity]
-        if not feasible:
-            unselected_locations.extend([d for d in dropoffs if d.index == n + vehicle.position.index])
-        else:
-            nearest_location = min(feasible, key=lambda loc: vehicle.position.calculate_distance(loc))
-            vehicle.add_section_path(nearest_location)
-            unselected_locations.remove(nearest_location)
-            unselected_locations.extend([d for d in dropoffs if d.index == n + nearest_location.index])
-    vehicle.add_section_path(depot)
-    ids = [p.index for p in vehicle.path if p.index != 0]
-    if len(ids) != len(set(ids)):
-            print("❌ Duplicate point IDs found:", [x for x in ids if ids.count(x) > 1])
+    best_cost = float("inf")
+    best_before_P, best_before_D = None, None
+
+    path_len = len(path)
+
+    load = [0] * (path_len)
+    cur = 0
+    #print(path_len)
+    for k in range(path_len):
+        cur += path[k].goods
+        load[k] = cur
+    #print(load)
+
+    # try all positions for pickup insertion
+    for i in range(path_len - 1):
+        #print(f"i: {i}")
+        if load[i] + customer.goods > vehicle.capacity:
+            continue
+
+        # try all dropoff positions
+        for j in range(i+1, path_len):
+            #print(f"j: {j}")
+
+            # simulate path load from new pickup to new dropoff
+            feasible = True
+            curload = load[i] + customer.goods
+            for k in range(i, j):
+                curload += path[k].goods
+                #print(f"cur: {curload}")
+                if curload > vehicle.capacity:
+                    feasible = False
+                    #print(f"curload > capacity: {curload}")
+                    break
+
+            if not feasible:
+                continue
+
+            # Insert pickup
+            before_P = path[i]
+            if abs(i-j) == 1:
+                after_P = customer.dropoff
+            else:
+                after_P = path[i+1]
+
+            #print(f"P: before: {before_P}, pickup: {customer.pickup}, after: {after_P}")
+
+            delta_pickup = before_P.calculate_distance(customer.pickup) + after_P.calculate_distance(customer.pickup)- after_P.calculate_distance(before_P)
+
+            if abs(i-j) == 1:
+                before_D = customer.pickup
+            else:
+                before_D = path[j-1]
+            after_D = path[j]
+
+            #print(f"D: before: {before_D}, dropoff: {customer.dropoff}, after: {after_D}")
+
+            delta_dropoff = before_D.calculate_distance(customer.dropoff) + after_D.calculate_distance(customer.dropoff)- after_D.calculate_distance(before_D)
+
+            delta = delta_pickup + delta_dropoff
+            #print(f"delta: {delta}")
+
+            if delta < best_cost:
+                best_cost = delta
+                best_before_P, best_before_D = before_P, before_D
+
+    # Build new path
+    vehicle.simple_add_point_after(best_before_P, customer.pickup)
+    vehicle.simple_add_point_after(best_before_D, customer.dropoff)
+    if vehicle.path_length < 0:
+        return None
+
     return vehicle
+
 
 def swap_two_customers(x, cust1, cust2, veh1, veh2, n):
 
-    result_vehicles = x.copy()
+    result_vehicles = copy.deepcopy(x)
 
-    print(f"Swap {cust1.index} with {cust2.index} with vehicles {veh1} and {veh2}")
+    #print(f"Swap {cust1.index} with {cust2.index} with vehicles {veh1} and {veh2}")
 
-    vehicle_1 = x[veh1].copy() if veh1 < len(x) else None
-    vehicle_2 = x[veh2].copy() if veh2 < len(x) else None
+    vehicle_1 = result_vehicles[veh1] if veh1 < len(x) else None
+    vehicle_2 = result_vehicles[veh2] if veh2 < len(x) else None
 
     pickup_c1 = cust1.pickup
     dropoff_c1 = cust1.dropoff
     pickup_c2 = cust2.pickup
     dropoff_c2 = cust2.dropoff
 
-    new_vehicle_1 = new_vehicle_2 = None
-
     if vehicle_1 is not None:
-        new_path = []
-
-        for point in vehicle_1.path[1:-1]:
-            if point != pickup_c1 and point != dropoff_c1:
-                new_path.append(point)
-        new_path.append(pickup_c2)
-        new_path.append(dropoff_c2)
-
-        print(vehicle_1.path_length)
-        new_vehicle_1 = Vehicle(vehicle_1.index, vehicle_1.capacity, vehicle_1.position)
-        new_vehicle_1 = reorder_path(new_vehicle_1, new_path, n)
-        print(new_vehicle_1.path_length)
-
+        vehicle_1.simple_remove_point(cust1.pickup)
+        vehicle_1.simple_remove_point(cust1.dropoff)
+        vehicle_1 = best_insertion(vehicle_1, cust1)
     if vehicle_2 is not None:
-        new_path = []
+        vehicle_2.simple_remove_point(cust2.pickup)
+        vehicle_2.simple_remove_point(cust2.dropoff)
+        vehicle_2 = best_insertion(vehicle_2, cust2)
 
-        for point in vehicle_2.path[1:-1]:
-            if point != pickup_c2 and point != dropoff_c2:
-                new_path.append(point)
-        new_path.append(pickup_c1)
-        new_path.append(dropoff_c1)
-
-        new_vehicle_2= Vehicle(vehicle_2.index, vehicle_2.capacity, vehicle_2.position)
-        new_vehicle_2 = reorder_path(new_vehicle_2, new_path, n)
-
-    if new_vehicle_1:
-        result_vehicles[veh1] = new_vehicle_1
-    if new_vehicle_2:
-        result_vehicles[veh2] = new_vehicle_2
+    if vehicle_1:
+        result_vehicles[veh1] = vehicle_1
+    if vehicle_2:
+        result_vehicles[veh2] = vehicle_2
     return result_vehicles
-
 
 
 def random_choose_swap_two_customers(x, customers, customer_to_vehicle, n):
@@ -126,11 +167,11 @@ def compute_initial_temperature(x, customers, customer_to_vehicle, n, rho=1, P0=
     Computes the initial temperature T_init for SA.
     P0 = initial acceptance probability for worse moves (0.03 = 3%)
     """
-    delta_avg = estimate_average_delta(x, customers, customer_to_vehicle, n, k=50, rho=rho)
+    delta_avg = estimate_average_delta(x, customers, customer_to_vehicle, n, k=3, rho=rho)
     T_init = -delta_avg / math.log(P0)
     return T_init
 
-def simulated_annealing(x0, customers, customer_to_vehicle, n, rho, alpha=0.95, Tmin=1e-3, max_iters=50000):
+def simulated_annealing(x0, customers, customer_to_vehicle, n, rho, alpha=0.95, Tmin=1e-3, max_iters=1000):
 
     x = x0
     tracker = ObjectiveTracker(x, rho)
@@ -160,7 +201,7 @@ def simulated_annealing(x0, customers, customer_to_vehicle, n, rho, alpha=0.95, 
                 x = x_new
                 f_x = f_new
                 tracker = tracker_new
-                print(f"new solution with lenght {f_new} accepted")
+                #print(f"new solution with lenght {f_new} accepted")
 
             else:
                 P = random.random()
@@ -170,20 +211,16 @@ def simulated_annealing(x0, customers, customer_to_vehicle, n, rho, alpha=0.95, 
                     x = x_new
                     f_x = f_new
                     tracker = tracker_new
-                    print(f"new solution with lenght {f_new} accepted")
+                    #print(f"new solution with lenght {f_new} accepted")
 
             iters += 1
             if iters >= max_iters:
                 break
 
-            print(f"iter: {iters}")
-            if iters == 12:
-                return x
-
         T = T * alpha
-        print(f"T cooled to {T:.4f}, cost = {f_x:.2f}")
+        print(f"T cooled to {T:.4f}, objective value = {f_x:.2f}")
 
-    print(f"Finished SA: iterations={iters}, final T={T:.5f}, best cost={f_x:.3f}")
+    print(f"Finished SA: iterations={iters}, final T={T:.5f}, objective value={f_x:.3f}")
     return x
     
 
@@ -192,16 +229,15 @@ def solve(customers, vehicles, to_fulfilled, rho):
     global objectiveTracker
     x = construction.solve(customers, vehicles, to_fulfilled, rho)
     x = reorder_paths(x, len(customers))
-    return x
 
-    # customer_to_vehicle: Dict[int, int] = {}
+    customer_to_vehicle: Dict[int, int] = {}
 
-    # for i, vehicle in enumerate(x):
-    #         for p in vehicle.path:
-    #             if p.type == 2:
-    #                 customer_to_vehicle[p.index] = i
+    for i, vehicle in enumerate(x):
+            for p in vehicle.path:
+                if p.type == 2:
+                    customer_to_vehicle[p.index] = i
 
-    # objectiveTracker = ObjectiveTracker(x, rho)
+    objectiveTracker = ObjectiveTracker(x, rho)
 
-    # print("Running simulated annealing")
-    # return simulated_annealing(x, customers, customer_to_vehicle, len(customers), rho, 0.95, 1e-3, 50000)
+    print("Running simulated annealing")
+    return simulated_annealing(x, customers, customer_to_vehicle, len(customers), rho, 0.95, 1e-3, 50000)

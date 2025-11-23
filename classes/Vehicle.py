@@ -180,3 +180,25 @@ class Vehicle:
     def get_location_after_x(self, x: Point):
         index = self.path.index(x)
         return self.path[index + 1]
+    
+    def simple_remove_point(self, point: Point):
+
+        index = next(i for i, p in enumerate(self.path) if p == point)
+        after = self.path[index+1]
+        before = self.path[index-1]
+        self.path_length = self.path_length - point.calculate_distance(before) - point.calculate_distance(after) + before.calculate_distance(after)
+        self.path.remove(point)
+
+    def simple_add_point_after(self, before: Point, point: Point):
+
+        start_index = next(i for i, p in enumerate(self.path) if p == before)
+        end = self.path[start_index + 1]
+        self.path_length = self.path_length + point.calculate_distance(before) + point.calculate_distance(end) - before.calculate_distance(end)
+        self.path.insert(start_index + 1, point)
+
+    def calculate_path_length(self):
+        result = 0
+        for i in range(len(self.path)-1):
+            result += self.path[i].calculate_distance(self.path[i+1])
+        return result
+

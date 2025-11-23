@@ -78,14 +78,14 @@ def main():
             flag = False
 
     switcher = {
-        "c": construction,
-        "rc": randomized_construction,
-        "ps": pilot_search,
-        "ls": local_search,
-        "vnd": variable_neighborhood_descent,
-        "grasp": greedy_randomized_adaptive_search_procedure,
-        "ts": tabu_search,
-        "sa": simulated_annealing
+        "c": (construction, "construction"),
+        "rc": (randomized_construction, "randomized_construction"),
+        "ps": (pilot_search, "pilot_search"),
+        "ls": (local_search, "local_search"),
+        "vnd": (variable_neighborhood_descent, "variable_neighborhood_descent"),
+        "grasp": (greedy_randomized_adaptive_search_procedure, "greedy_randomized_adaptive_search_procedure"),
+        "ts": (tabu_search, "tabu_search"),
+        "sa": (simulated_annealing, "simulated_annealing")
     }
 
     to_fullfilled, rho, vehicles, customers = read_input_file(args.input)
@@ -93,14 +93,18 @@ def main():
 
     start_time = time.time()
 
-    result = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho)
+    func, func_name = switcher[heuristic_type]
+
+    func_name = func_name.replace("_", " ").title()
+
+    result = func(customers, vehicles, to_fullfilled, rho)
 
     end_time = time.time()
     elapsed_time = end_time - start_time
     print(f"Execution time: {elapsed_time:.4f} seconds")
 
     obj_func = round(objective_function(result, rho), 2)
-    display_graph(graph, result, obj_func)
+    display_graph(graph, result, obj_func, func_name)
 
     return
 
