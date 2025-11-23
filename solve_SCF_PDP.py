@@ -2,6 +2,7 @@ import argparse
 import itertools
 import networkx as nx
 import time
+import os
 
 from classes.Customer import Customer
 from classes.Point import Point
@@ -15,7 +16,6 @@ from heuristics.pilot_search import solve as pilot_search
 from heuristics.local_search import solve as local_search
 from heuristics.variable_neighborhood_descent import solve as variable_neighborhood_descent
 from heuristics.greedy_randomized_adaptive_search_procedure import solve as greedy_randomized_adaptive_search_procedure
-from heuristics.tabu_search import solve as tabu_search
 from heuristics.simulated_annealing import solve as simulated_annealing
 from tools import *
 
@@ -57,6 +57,45 @@ def create_graph(depot, customers):
 
     return graph
 
+def save_results(output_path, result):
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    filename_no_ext = os.path.splitext(os.path.basename(output_path))[0]
+
+    with open(output_path, "w") as f:
+        f.write(f"{filename_no_ext}\n")
+
+        for vehicle in result:
+
+            for node in vehicle.path[1:-1]:
+                f.write(f"{node.index} ")
+            f.write("\n")
+
+def process_for_statistic(heuristic_type, input_file, output_path):
+
+    switcher = {
+        "c": construction,
+        "rc": randomized_construction,
+        "ps": pilot_search,
+        "ls": local_search,
+        "vnd": variable_neighborhood_descent,
+        "grasp": greedy_randomized_adaptive_search_procedure,
+        "sa": simulated_annealing
+    }
+
+    to_fullfilled, rho, vehicles, customers = read_input_file(input_file)
+
+    start_time = time.time()
+    result = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho)
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+
+    obj_func = round(objective_function(result, rho), 2)
+
+    save_results(output_path, result)
+
+    return obj_func, elapsed_time
+
 
 def main():
 
@@ -72,8 +111,8 @@ def main():
     flag = True
     while flag:
         heuristic_type = input("Enter your choice (c/rc/ps/ls/vnd/grasp/ts/sa): ").strip().lower()
-        if heuristic_type not in {'c', 'rc', 'ps', 'ls', 'vnd', 'grasp', 'ts', 'sa'}:
-            print("Invalid input: please select one of: c, rc, ps, ls, vnd, grasp, ts, sa")
+        if heuristic_type not in {'c', 'rc', 'ps', 'ls', 'vnd', 'grasp', 'sa'}:
+            print("Invalid input: please select one of: c, rc, ps, ls, vnd, grasp, sa")
         else:
             flag = False
 
@@ -84,7 +123,6 @@ def main():
         "ls": (local_search, "local_search"),
         "vnd": (variable_neighborhood_descent, "variable_neighborhood_descent"),
         "grasp": (greedy_randomized_adaptive_search_procedure, "greedy_randomized_adaptive_search_procedure"),
-        "ts": (tabu_search, "tabu_search"),
         "sa": (simulated_annealing, "simulated_annealing")
     }
 

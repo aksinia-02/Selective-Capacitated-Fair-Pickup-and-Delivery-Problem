@@ -197,7 +197,6 @@ def solve(customers, vehicles, to_fulfilled, rho, strategy="pure"):
         )[:len(vehicles)]
 
         fulfilled_total = sum((len(v.path) - 2) / 2 for v in selected)
-        print(f"Fulfilled: {fulfilled_total}")
 
         if fulfilled_total >= to_fulfilled:
             print(f"Not fulfilled customers: {num_customers - fulfilled_total}")
