@@ -68,7 +68,6 @@ def main():
         if folder_name not in folder_names:
             continue
         folder_path = os.path.join(data_folder, folder_name)
-        print(folder_path)
 
         if os.path.isdir(folder_path):
             for file_name in sorted(f for f in os.listdir(folder_path) if f.endswith('.txt')):
@@ -76,7 +75,6 @@ def main():
 
                 if os.path.isfile(file_path):
                     file_name_full = f"{data_folder}/{folder_name}/{file_name}"
-                    print(file_name_full)
 
                     print("--------------------------------------------------------")
                     print("--------------------------------------------------------")
@@ -99,9 +97,6 @@ def main():
                     output_path = os.path.join(os.path.dirname(file_path.replace("instances", f"output\{args.type}")), file_name)
                     avg_time = avg_obj_func = 0
                     for i in range(n):
-                        print(args.type)
-                        print(file_name_full)
-                        print(output_path)
                         obj_func, elapsed_time = process_for_statistic(args.type, file_name_full, output_path)
                         avg_time += elapsed_time
                         avg_obj_func += obj_func
