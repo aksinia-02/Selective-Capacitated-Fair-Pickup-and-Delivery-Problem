@@ -7,8 +7,7 @@ from tools import objective_function
 def solve(customers, vehicles, to_fulfilled, rho):
     """
     This function solves the heuristic problem using the greedy randomized adaptive search procedure.
-    It uses VND with the neighborhood structures ["pickup_relocate", "dropoff_relocate", "exchange"]
-    and best improvement.
+    It uses VND with its default neighborhood structures and best improvement.
 
     customers: is a list of customer objects, each customer object contains information about a customer request.
     initial_solution: the initial solution of the heuristic problem. (a list of vehicle objects)

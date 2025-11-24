@@ -12,7 +12,7 @@ def solve(customers, initial_solution, to_fulfilled, rho, neighborhood_structure
     to_fulfilled: the number of requests that need to be fulfilled.
     rho: the fairness weight.
     neighborhood_structures: a list of neighborhood structures. Valid values are "exchange", "pickup_relocate",
-        "dropoff_relocate" and "remove_and_append". If None, it will be initialized with
+        "dropoff_relocate", "remove_and_append" and "move". If None, it will be initialized with
         ["pickup_relocate", "dropoff_relocate", "exchange"]
     improvement_strategy: the improvement strategy. Valid values are: "best" and "first".
     """

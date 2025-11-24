@@ -121,6 +121,32 @@ def predict_new_path_lengths_after_remove_and_append(vehicle, destination_vehicl
     return vehicle_path_length, destination_vehicle_path_length
 
 
+def predict_new_path_lengths_after_move(vehicle, destination_vehicle, customer, pickup_pred, dropoff_pred):
+    """
+    This function returns the new path length of two vehicles, if a request pair of a customer is removed from one
+    vehicle and inserted somewhere into another one.
+    The vehicle paths are not changed.
+
+    vehicle: the vehicle object from which the pickup and dropoff points are removed.
+    destination_vehicle: the vehicle object which the pickup and dropoff points are inserted to.
+    customer: the customer object whose point should be removed and appended.
+    pickup_pred: the predecessor of the pickup point
+    dropoff_pred: the predecessor of the dropoff point
+    """
+
+    vehicle_path_length = vehicle.path_length
+    path = vehicle.path
+    path, vehicle_path_length = vehicle.predict_path_after_remove(customer.pickup, path, vehicle_path_length)
+    path, vehicle_path_length = vehicle.predict_path_after_remove(customer.dropoff, path, vehicle_path_length)
+
+    destination_vehicle_path_length = destination_vehicle.path_length
+    path = destination_vehicle.path
+    path, destination_vehicle_path_length = destination_vehicle.predict_path_after_add_after(dropoff_pred, customer.dropoff, path, destination_vehicle_path_length)
+    path, destination_vehicle_path_length = destination_vehicle.predict_path_after_add_after(pickup_pred, customer.pickup, path, destination_vehicle_path_length)
+
+    return vehicle_path_length, destination_vehicle_path_length
+
+
 def swap_pair_in_vehicle(vehicle, cust_a, cust_b):
     """
     This function swaps the request pairs of two customers inside the same vehicle.
