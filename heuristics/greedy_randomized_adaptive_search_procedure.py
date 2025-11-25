@@ -17,7 +17,7 @@ def solve(customers, vehicles, to_fulfilled, rho):
 
     best_solution = None
     no_improvement = 0
-    max_no_improvement = 5
+    max_no_improvement = 10
 
     while no_improvement < max_no_improvement:
         temp_solution = copy.deepcopy(vehicles)

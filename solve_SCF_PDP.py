@@ -71,7 +71,7 @@ def save_results(output_path, result):
                 f.write(f"{node.index} ")
             f.write("\n")
 
-def process_for_statistic(heuristic_type, input_file, output_path):
+def process_for_statistic(heuristic_type, input_file, output_path, neighborhood, strategy):
 
     switcher = {
         "c": construction,
@@ -85,8 +85,26 @@ def process_for_statistic(heuristic_type, input_file, output_path):
 
     to_fullfilled, rho, vehicles, customers = read_input_file(input_file)
 
+    # initialize solution if the heuristic starts with a solution
+    if heuristic_type is not "c" and heuristic_type is not "rc" and heuristic_type is not "ps" and heuristic_type is not "grasp":
+        vehicles = construction(customers, vehicles, to_fullfilled, rho, strategy="with_reordering")
+
     start_time = time.time()
-    result = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho)
+    if strategy is not None:
+        if neighborhood is not None:
+            result = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho, neighborhood, strategy)
+        else:
+            if heuristic_type is not "ls" and heuristic_type is not "vnd":
+                result = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho, strategy=strategy)
+            else:
+                result = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho, improvement_strategy=strategy)
+    else:
+        if neighborhood is not None:
+            result = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho, neighborhood)
+        else:
+            result = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho)
+
+
     end_time = time.time()
     elapsed_time = end_time - start_time
 

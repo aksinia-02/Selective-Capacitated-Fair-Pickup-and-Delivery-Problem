@@ -8,10 +8,10 @@ from solve_SCF_PDP import process_for_statistic
 # .\venv\Scripts\Activate
 
 
-def load_or_create_dataframe(filename, type):
+def load_or_create_dataframe(filename, path):
     columns = ["number", "nreq", "nveh", "to_fulfilled", "rho", "avg_time", "avg_obj_func"]
-    os.makedirs(f"output/{type}", exist_ok=True)
-    path = f"output/{type}/{filename}"
+    os.makedirs(path, exist_ok=True)
+    path = f"{path}/{filename}"
     if os.path.exists(path):
         df = pd.read_csv(path)
         print(f"Loaded existing file: {path}")
@@ -21,8 +21,8 @@ def load_or_create_dataframe(filename, type):
         print(f"Created new file: {path}")
     return df
 
-def save_results_to_csv(results, filename):
-    path = f"output/{filename}"
+def save_results_to_csv(results, filename, path):
+    path = f"{path}/{filename}"
     df = pd.DataFrame(results)
     if os.path.exists(path):
         existing = pd.read_csv(path)
@@ -41,6 +41,12 @@ def main():
                         help="Folders names to be chosen to work with.")
     parser.add_argument("-t", "--type", type=str, required=True, choices=['c', 'rc', 'ps', 'ls', 'vnd', 'grasp', 'sa'],
                         help="Type of heuristic.")
+    parser.add_argument("-nh", "--neighborhood", type=str, required=False, choices=['exchange', 'pickup_relocate',
+                        'dropoff_relocate', 'remove_and_append', 'move'],
+                        help="Neighborhood structure.")
+    parser.add_argument("-s", "--strategy", type=str, required=False, choices=['pure', 'with_reordering',
+                        'light', 'intensive', 'best', 'first'],
+                        help="Strategy for the heuristic.")
 
     args = parser.parse_args()
     print(args)
@@ -48,7 +54,29 @@ def main():
     data_folder = args.input
     folder_names = args.folder_names
     n = args.number_of_experiments
-    df = load_or_create_dataframe("output.csv", args.type)
+    neighborhood = args.neighborhood
+    strategy = args.strategy
+
+    if strategy is not None:
+        if (args.type not in ['c', 'rc', 'ps', 'ls', 'vnd'] or (args.type in ['c', 'rc'] and strategy not in ['pure', 'with_reordering'])
+                or (args.type in ['ps'] and strategy not in ['light', 'intensive'])
+                or (args.type in ['ls', 'vnd'] and strategy not in ['best', 'first'])):
+            raise ValueError(f"Strategy not valid for heuristic type")
+        if neighborhood is not None:
+            if args.type not in ['ls']:
+                raise ValueError(f"Neighborhood not valid for heuristic type")
+            path = f"output/{args.type}/{args.neighborhood}_{args.strategy}"
+        else:
+            path = f"output/{args.type}/{args.strategy}"
+    else:
+        if neighborhood is not None:
+            if args.type not in ['ls']:
+                raise ValueError(f"Neighborhood not valid for heuristic type")
+            path = f"output/{args.type}/{args.neighborhood}"
+        else:
+            path = f"output/{args.type}"
+
+    df = load_or_create_dataframe("output.csv", path)
 
     folder_file_count = 0
     counter = 0
@@ -94,10 +122,10 @@ def main():
                         "rho": rho
                     }
 
-                    output_path = os.path.join(os.path.dirname(file_path.replace("instances", f"output\{args.type}")), file_name)
+                    output_path = os.path.join(os.path.dirname(file_path.replace("instances", f"{path}")), file_name)
                     avg_time = avg_obj_func = 0
                     for i in range(n):
-                        obj_func, elapsed_time = process_for_statistic(args.type, file_name_full, output_path)
+                        obj_func, elapsed_time = process_for_statistic(args.type, file_name_full, output_path, neighborhood, strategy)
                         avg_time += elapsed_time
                         avg_obj_func += obj_func
 
@@ -110,7 +138,7 @@ def main():
 
                     print(f"Statistic: {(counter / folder_file_count) * 100:.2f}%")
 
-    save_results_to_csv(results, f"{args.type}/output.csv")
+    save_results_to_csv(results, f"output.csv", path)
 
 
 if __name__ == "__main__":
