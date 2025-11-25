@@ -9,7 +9,7 @@ from solve_SCF_PDP import process_for_statistic
 
 
 def load_or_create_dataframe(filename, path):
-    columns = ["number", "nreq", "nveh", "to_fulfilled", "rho", "avg_time", "avg_obj_func"]
+    columns = ["number", "nreq", "nveh", "to_fulfilled", "rho", "avg_time", "avg_obj_func", "iterations"]
     os.makedirs(path, exist_ok=True)
     path = f"{path}/{filename}"
     if os.path.exists(path):
@@ -123,18 +123,36 @@ def main():
                     }
 
                     output_path = os.path.join(os.path.dirname(file_path.replace("instances", f"{path}")), file_name)
-                    avg_time = avg_obj_func = 0
+                    avg_time = avg_obj_func = avg_iterations = 0
+
+
                     for i in range(n):
-                        obj_func, elapsed_time = process_for_statistic(args.type, file_name_full, output_path, neighborhood, strategy)
+                        obj_func, elapsed_time, statistic = process_for_statistic(args.type, file_name_full, output_path, neighborhood, strategy)
+                        avg_iterations += statistic.iterations
                         avg_time += elapsed_time
                         avg_obj_func += obj_func
 
+                        df_run = pd.DataFrame({
+                            "Iteration": list(range(len(statistic.objective_over_time))),
+                            "Objective": statistic.objective_over_time,
+                            "Fairness": statistic.fairness_over_time,
+                            "Duration": statistic.duration_over_time
+                        })
+                        progress_path = f"{os.path.dirname(file_path.replace("instances", f"{path}"))}/progress_over_time/{file_name}_({n}).csv"
+                        parent = os.path.dirname(progress_path)
+                        os.makedirs(parent, exist_ok=True)
+                        df_run.to_csv(progress_path, index=False)
+
                     avg_time = avg_time / n
                     avg_obj_func = avg_obj_func / n
+                    avg_iterations = avg_iterations / n
                     result_dict["avg_time"] = avg_time
                     result_dict["avg_obj_func"] = avg_obj_func
+                    result_dict["iterations"] = avg_iterations
                     counter += 1
                     results.append(result_dict)
+
+
 
                     print(f"Statistic: {(counter / folder_file_count) * 100:.2f}%")
 

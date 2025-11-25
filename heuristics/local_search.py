@@ -1,10 +1,11 @@
+from classes.Statistic import Statistic
 from tools import *
 from heuristics import construction
 import copy
 from heuristics.neighborhood_structures.neighborhood_core import choose_neighbor
 
 
-def solve(customers, initial_solution, to_fulfilled, rho, neighborhood_structure="exchange", improvement_strategy="best"):
+def solve(customers, initial_solution, to_fulfilled, rho, neighborhood_structure="exchange", improvement_strategy="best", output_statistic=False):
     """
     This function solves the heuristic problem using local search.
 
@@ -17,23 +18,29 @@ def solve(customers, initial_solution, to_fulfilled, rho, neighborhood_structure
     improvement_strategy: the improvement strategy. Valid values are: "best" and "first".
     """
 
+
     best_solution = copy.deepcopy(initial_solution)
+
+    statistic = Statistic(best_solution, rho)
 
     # If the solution is empty, it will be completed first
     if not is_solution_valid(best_solution, to_fulfilled):
         best_solution = construction.solve(customers, best_solution, to_fulfilled, rho, strategy="with_reordering")
 
-    print(f"objective value of first solution: {objective_function(best_solution, rho)}")
-
     while True:
         current_solution = choose_neighbor(best_solution, customers, neighborhood_structure, improvement_strategy, to_fulfilled, rho)
+
         if current_solution is None:
+            statistic.update(best_solution, rho)
             break
         else:
             best_solution = current_solution
-            print(f"objective value of better solution: {objective_function(best_solution, rho)}")
+            statistic.update(current_solution, rho)
 
-    return best_solution
+    if output_statistic:
+        return best_solution, statistic
+    else:
+        return best_solution
 
 
 

@@ -2,9 +2,10 @@ import copy
 from heuristics.variable_neighborhood_descent import solve as variable_neighborhood_descent
 from heuristics.randomized_construction import solve as randomized_construction
 from tools import objective_function
+from classes.Statistic import Statistic
 
 
-def solve(customers, vehicles, to_fulfilled, rho):
+def solve(customers, vehicles, to_fulfilled, rho, output_statistic=False):
     """
     This function solves the heuristic problem using the greedy randomized adaptive search procedure.
     It uses VND with its default neighborhood structures and best improvement.
@@ -17,16 +18,23 @@ def solve(customers, vehicles, to_fulfilled, rho):
 
     best_solution = None
     no_improvement = 0
-    max_no_improvement = 10
+    max_no_improvement = 3
+
+    statistic = Statistic()
 
     while no_improvement < max_no_improvement:
         temp_solution = copy.deepcopy(vehicles)
         temp_solution = randomized_construction(customers, temp_solution, to_fulfilled, rho)
         current_solution = variable_neighborhood_descent(customers, temp_solution, to_fulfilled, rho)
 
+        statistic.update(current_solution, rho)
+
         if best_solution is None or objective_function(best_solution, rho) > objective_function(current_solution, rho):
             best_solution = current_solution
             no_improvement = 0
         else:
             no_improvement += 1
-    return best_solution
+    if output_statistic:
+        return best_solution, statistic
+    else:
+        return best_solution

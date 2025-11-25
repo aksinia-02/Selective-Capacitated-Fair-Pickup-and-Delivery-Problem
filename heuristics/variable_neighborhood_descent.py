@@ -1,9 +1,11 @@
 import copy
+
+from classes.Statistic import Statistic
 from heuristics.neighborhood_structures.neighborhood_core import choose_neighbor
 from tools import *
 from heuristics import construction
 
-def solve(customers, initial_solution, to_fulfilled, rho, neighborhood_structures=None, improvement_strategy="best"):
+def solve(customers, initial_solution, to_fulfilled, rho, neighborhood_structures=None, improvement_strategy="best", output_statistic=False):
     """
     This function solves the heuristic problem using variable neighborhood descent.
 
@@ -26,16 +28,25 @@ def solve(customers, initial_solution, to_fulfilled, rho, neighborhood_structure
     if not is_solution_valid(best_solution, to_fulfilled):
         best_solution = construction.solve(customers, best_solution, to_fulfilled, rho, strategy="with_reordering")
 
+    statistic = Statistic(best_solution, rho)
+
     l = 0 # index of neighborhood structure
     l_max = len(neighborhood_structures)
 
     while l < l_max:
-        print(l)
         current_solution = choose_neighbor(best_solution, customers, neighborhood_structures[l], improvement_strategy, to_fulfilled, rho)
+
+
 
         if current_solution is None:
             l = l + 1
+            statistic.iterations += 1
+            continue
         else:
             best_solution = current_solution
+            statistic.update(current_solution, rho)
             l = 0
-    return best_solution
+    if output_statistic:
+        return best_solution, statistic
+    else:
+        return best_solution

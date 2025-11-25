@@ -6,6 +6,7 @@ import heapq
 
 from classes.Point import Point
 from classes.Customer import Customer
+from classes.Statistic import Statistic
 from classes.Vehicle import Vehicle
 
 from tools import objective_function
@@ -121,7 +122,9 @@ def eliminate_sorted_pairs(sorted_pairs, merged_vehicle):
         if not (pair[0][0] in type2_indices and pair[0][1] in type2_indices)
     ]
 
-def solve(customers, vehicles, to_fulfilled, rho, strategy="pure"):
+def solve(customers, vehicles, to_fulfilled, rho, strategy="pure", output_statistic=False):
+
+    statistic = Statistic()
 
     depot = vehicles[0].path[0]
     num_customers = len(customers)
@@ -198,8 +201,13 @@ def solve(customers, vehicles, to_fulfilled, rho, strategy="pure"):
 
         fulfilled_total = sum((len(v.path) - 2) / 2 for v in selected)
 
+        statistic.update(max_temp_vehicles, rho)
+
         if fulfilled_total >= to_fulfilled:
             print(f"Not fulfilled customers: {num_customers - fulfilled_total}")
             for i, v in enumerate(max_temp_vehicles):
                 v.index = i
-            return max_temp_vehicles
+            if output_statistic:
+                return max_temp_vehicles, statistic
+            else:
+                return max_temp_vehicles

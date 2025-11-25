@@ -14,6 +14,19 @@ def objective_function(vehicles, rho):
 
     return objective
 
+def objective_function_detailed(vehicles, rho):
+    """
+    This function computes and returns the objective value of a solution.
+    """
+
+    total = sum(v.path_length for v in vehicles)
+    squares = sum(v.path_length ** 2 for v in vehicles)
+    jain_fairness = (total ** 2) / (len(vehicles) * squares)
+
+    objective = total + rho * (1 - jain_fairness)
+
+    return objective, total, jain_fairness
+
 
 def find_vehicle(solution, node):
     """

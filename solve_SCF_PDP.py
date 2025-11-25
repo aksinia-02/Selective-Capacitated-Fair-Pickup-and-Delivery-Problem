@@ -92,17 +92,17 @@ def process_for_statistic(heuristic_type, input_file, output_path, neighborhood,
     start_time = time.time()
     if strategy is not None:
         if neighborhood is not None:
-            result = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho, neighborhood, strategy)
+            result, statistic = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho, neighborhood, strategy, output_statistic=True)
         else:
             if heuristic_type is not "ls" and heuristic_type is not "vnd":
-                result = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho, strategy=strategy)
+                result, statistic = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho, strategy=strategy, output_statistic=True)
             else:
-                result = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho, improvement_strategy=strategy)
+                result, statistic = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho, improvement_strategy=strategy, output_statistic=True)
     else:
         if neighborhood is not None:
-            result = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho, neighborhood)
+            result, statistic = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho, neighborhood, output_statistic=True)
         else:
-            result = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho)
+            result, statistic = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho, output_statistic=True)
 
 
     end_time = time.time()
@@ -112,7 +112,7 @@ def process_for_statistic(heuristic_type, input_file, output_path, neighborhood,
 
     save_results(output_path, result)
 
-    return obj_func, elapsed_time
+    return obj_func, elapsed_time, statistic
 
 
 def main():

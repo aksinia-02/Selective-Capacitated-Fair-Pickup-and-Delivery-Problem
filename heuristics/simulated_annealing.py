@@ -1,3 +1,4 @@
+from classes.Statistic import Statistic
 from tools import *
 from heuristics import construction
 from typing import Dict
@@ -157,7 +158,7 @@ def compute_initial_temperature(x, customers, customer_to_vehicle, n, rho=1, P0=
     T_init = -delta_avg / math.log(P0)
     return T_init
 
-def simulated_annealing(x0, customers, customer_to_vehicle, n, rho, alpha=0.95, Tmin=1e-3, max_iters=1000):
+def simulated_annealing(x0, customers, customer_to_vehicle, n, rho, statistic, alpha=0.95, Tmin=1e-3, max_iters=1000, output_statistic=False):
 
     x = x0
     tracker = ObjectiveTracker(x, rho)
@@ -208,6 +209,7 @@ def simulated_annealing(x0, customers, customer_to_vehicle, n, rho, alpha=0.95, 
                         best_cost = f_new
                         best_solution = copy.deepcopy(x)
 
+            statistic.update(x, rho)
             iters += 1
             if iters >= max_iters:
                 break
@@ -216,14 +218,23 @@ def simulated_annealing(x0, customers, customer_to_vehicle, n, rho, alpha=0.95, 
         print(f"T cooled to {T:.4f}, objective value = {f_x:.2f}")
 
     print(f"Finished SA: iterations={iters}, final T={T:.5f}, objective value={best_cost:.3f}")
-    return best_solution
+    if output_statistic:
+        return best_solution, statistic
+    else:
+        return best_solution
     
 
-def solve(customers, vehicles, to_fulfilled, rho):
+def solve(customers, vehicles, to_fulfilled, rho, output_statistic=False):
 
     global objectiveTracker
-    x = construction.solve(customers, vehicles, to_fulfilled, rho)
-    x = reorder_paths(x, len(customers))
+
+    x = copy.deepcopy(vehicles)
+
+    if not is_solution_valid(vehicles, to_fulfilled):
+        x = construction.solve(customers, vehicles, to_fulfilled, rho)
+        x = reorder_paths(x, len(customers))
+
+    statistic = Statistic(x, rho)
 
     customer_to_vehicle: Dict[int, int] = {}
 
@@ -235,4 +246,4 @@ def solve(customers, vehicles, to_fulfilled, rho):
     objectiveTracker = ObjectiveTracker(x, rho)
 
     print("Running simulated annealing")
-    return simulated_annealing(x, customers, customer_to_vehicle, len(customers), rho, 0.95, 1e-3, 50000)
+    return simulated_annealing(x, customers, customer_to_vehicle, len(customers), rho, statistic, 0.95, 1e-3, 50000, output_statistic)

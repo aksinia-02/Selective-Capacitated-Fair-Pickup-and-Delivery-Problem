@@ -1,9 +1,10 @@
+from classes.Statistic import Statistic
 from tools import *
 from heuristics import construction
 import copy
 
 
-def solve(customers, vehicles, to_fulfilled, rho, strategy="light"):
+def solve(customers, vehicles, to_fulfilled, rho, strategy="light", output_statistic=False):
     """
     This function solves the heuristic problem using pilot search.
 
@@ -16,6 +17,8 @@ def solve(customers, vehicles, to_fulfilled, rho, strategy="light"):
 
     x = copy.deepcopy(vehicles)
     x_best = None
+
+    statistic = Statistic()
 
     while not is_complete(x, to_fulfilled):
         C = satisfy_one_more_customer(x, customers, strategy)
@@ -30,9 +33,16 @@ def solve(customers, vehicles, to_fulfilled, rho, strategy="light"):
                 x_best = x_temp
                 c_best = c
         x = c_best
+        statistic.update(x_best, rho)
         if x is None:
-            return x_best
-    return x
+            if output_statistic:
+                return x_best, statistic
+            else:
+                return x_best
+    if output_statistic:
+        return x, statistic
+    else:
+        return x
 
 
 def satisfy_one_more_customer(solution, customers, strategy):
