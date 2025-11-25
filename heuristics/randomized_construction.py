@@ -165,7 +165,7 @@ def solve(customers, vehicles, to_fulfilled, rho, strategy="pure", output_statis
         statistic.update(max_temp_vehicles, rho)
 
         if fulfilled_total >= to_fulfilled:
-            print(f"Not fulfilled customers: {num_customers - fulfilled_total}")
+            #print(f"Not fulfilled customers: {num_customers - fulfilled_total}")
             for i, v in enumerate(max_temp_vehicles):
                 v.index = i
             if output_statistic:

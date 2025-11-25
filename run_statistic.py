@@ -44,8 +44,7 @@ def main():
     parser.add_argument("-nh", "--neighborhood", type=str, required=False, choices=['exchange', 'pickup_relocate',
                         'dropoff_relocate', 'remove_and_append', 'move'],
                         help="Neighborhood structure.")
-    parser.add_argument("-s", "--strategy", type=str, required=False, choices=['pure', 'with_reordering',
-                        'light', 'intensive', 'best', 'first'],
+    parser.add_argument("-s", "--strategy", type=str, required=False, choices=['pure', 'with_reordering', 'best', 'first'],
                         help="Strategy for the heuristic.")
 
     args = parser.parse_args()
@@ -58,8 +57,7 @@ def main():
     strategy = args.strategy
 
     if strategy is not None:
-        if (args.type not in ['c', 'rc', 'ps', 'ls', 'vnd'] or (args.type in ['c', 'rc'] and strategy not in ['pure', 'with_reordering'])
-                or (args.type in ['ps'] and strategy not in ['light', 'intensive'])
+        if (args.type not in ['c', 'rc', 'ls', 'vnd'] or (args.type in ['c', 'rc'] and strategy not in ['pure', 'with_reordering'])
                 or (args.type in ['ls', 'vnd'] and strategy not in ['best', 'first'])):
             raise ValueError(f"Strategy not valid for heuristic type")
         if neighborhood is not None:

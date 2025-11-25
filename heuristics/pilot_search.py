@@ -4,7 +4,7 @@ from heuristics import construction
 import copy
 
 
-def solve(customers, vehicles, to_fulfilled, rho, strategy="light", output_statistic=False):
+def solve(customers, vehicles, to_fulfilled, rho, output_statistic=False):
     """
     This function solves the heuristic problem using pilot search.
 
@@ -16,50 +16,49 @@ def solve(customers, vehicles, to_fulfilled, rho, strategy="light", output_stati
     """
 
     x = copy.deepcopy(vehicles)
-    x_best = None
 
+
+    x_best = None
     statistic = Statistic()
 
     while not is_complete(x, to_fulfilled):
-        C = satisfy_one_more_customer(x, customers, strategy)
-        c_best = None
 
+        C = satisfy_one_more_customer(x, customers)
+
+        c_best = None
+        best_x_temp = None
+        best_val = float("inf")
+
+        # Evaluate all candidates and pick the best one this iteration
         for c in C:
+
+            # compute x_temp
             if x_best is None or not is_prefix(c, x_best):
                 x_temp = construction.solve(customers, copy.deepcopy(c), to_fulfilled, rho)
             else:
                 x_temp = x_best
-            if x_best is None or objective_function(x_temp, rho) < objective_function(x_best, rho):
-                x_best = x_temp
+
+            val = objective_function(x_temp, rho)
+
+            # keep best candidate in this iteration
+            if val < best_val:
+                best_val = val
+                best_x_temp = x_temp
                 c_best = c
+
+        # move to next partial solution
         x = c_best
+
+        # update global best if improved
+        if x_best is None or best_val < objective_function(x_best, rho):
+            x_best = best_x_temp
+
         statistic.update(x_best, rho)
-        if x is None:
-            if output_statistic:
-                return x_best, statistic
-            else:
-                return x_best
+
     if output_statistic:
-        return x, statistic
+        return x_best, statistic
     else:
-        return x
-
-
-def satisfy_one_more_customer(solution, customers, strategy):
-    """
-    This function satisfies one more customer request depending on the strategy.
-
-    solution: the incomplete solution of the heuristic problem. (a list of vehicle objects)
-    customers: is a list of customer objects, each customer object contains information about a customer request.
-    strategy: "light" or "intensive".
-    """
-
-    if strategy == "light":
-        return satisfy_one_more_customer_light(solution, customers)
-    elif strategy == "intensive":
-        return satisfy_one_more_customer_intensive(solution, customers)
-    else:
-        raise ValueError(f"Unknown strategy: {strategy}")
+        return x_best
 
 
 def is_complete(solution, to_fulfilled):
@@ -78,11 +77,11 @@ def is_complete(solution, to_fulfilled):
     return fulfilled >= to_fulfilled
 
 
-def satisfy_one_more_customer_light(solution, customers):
+def satisfy_one_more_customer(solution, customers):
     """
-    This function satisfies one more customer request following the light strategy.
-    The next unfulfilled customer request is simply appended to each vehicle. Therefore, this function
-    returns len(solution) different solutions in C.
+    This function satisfies one more customer request.
+    The next unfulfilled customer request is simply inserted into each vehicle without splitting pairs. Therefore, this function
+    returns len(solution) * len(vehicle.path)/2 different solutions in C.
 
     solution: the incomplete solution of the heuristic problem. (a list of vehicle objects)
     customers: is a list of customer objects, each customer object contains information about a customer request.
@@ -93,39 +92,14 @@ def satisfy_one_more_customer_light(solution, customers):
         if find_vehicle(solution, customer.pickup) is None:
             # add points to a vehicle path
             for vehicle_target in solution:
-                c = copy.deepcopy(solution)
-                v = c[vehicle_target.index]
-                v.add_section_path(customer.pickup)
-                v.add_section_path(customer.dropoff)
-                if is_valid(v):
-                    C.append(c)
-            return C
-    return C
-
-
-def satisfy_one_more_customer_intensive(solution, customers):
-    """
-    This function satisfies one more customer request following the intensive strategy.
-    From each unfulfilled customer request the dropoff point is simply appended to each vehicle and the pickup point is
-    placed at every possible space before the dropoff point. Therefore, this function
-    returns len(customers) * len(solution) * len(vehicle.path) different solutions in C.
-
-    solution: the incomplete solution of the heuristic problem. (a list of vehicle objects)
-    customers: is a list of customer objects, each customer object contains information about a customer request.
-    """
-
-    C = []
-    for customer in customers:
-        if find_vehicle(solution, customer.pickup) is None:
-            # add points to a vehicle path
-            for vehicle_target in solution:
-                for p in vehicle_target.path:
+                for p in range(0, len(vehicle_target.path), 2):
                     c = copy.deepcopy(solution)
                     v = c[vehicle_target.index]
-                    v.add_section_path(customer.dropoff)
-                    v.add_section_path_after(p, customer.pickup)
+                    v.add_section_path_after(v.path[p], customer.pickup)
+                    v.add_section_path_after(customer.pickup, customer.dropoff)
                     if is_valid(v):
                         C.append(c)
+            return C
     return C
 
 
