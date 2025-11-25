@@ -86,7 +86,7 @@ def process_for_statistic(heuristic_type, input_file, output_path, neighborhood,
     to_fullfilled, rho, vehicles, customers = read_input_file(input_file)
 
     # initialize solution if the heuristic starts with a solution
-    if heuristic_type is not "c" and heuristic_type is not "rc" and heuristic_type is not "ps" and heuristic_type is not "grasp":
+    if heuristic_type != "c" and heuristic_type != "rc" and heuristic_type != "ps" and heuristic_type != "grasp":
         vehicles = construction(customers, vehicles, to_fullfilled, rho, strategy="with_reordering")
 
     start_time = time.time()
@@ -94,7 +94,7 @@ def process_for_statistic(heuristic_type, input_file, output_path, neighborhood,
         if neighborhood is not None:
             result, statistic = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho, neighborhood, strategy, output_statistic=True)
         else:
-            if heuristic_type is not "ls" and heuristic_type is not "vnd":
+            if heuristic_type != "ls" and heuristic_type != "vnd":
                 result, statistic = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho, strategy=strategy, output_statistic=True)
             else:
                 result, statistic = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fullfilled, rho, improvement_strategy=strategy, output_statistic=True)
