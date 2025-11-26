@@ -82,7 +82,7 @@ def merge_without_reordering(vehicle_1, vehicle_2, n):
 
     return merged_vehicle
 
-def solve(customers, vehicles, to_fulfilled, rho, strategy="pure", output_statistic=False):
+def solve(customers, vehicles, to_fulfilled, rho, strategy="pure", alpha=0.3, output_statistic=False):
 
     statistic = Statistic()
 
@@ -125,29 +125,34 @@ def solve(customers, vehicles, to_fulfilled, rho, strategy="pure", output_statis
 
         improving_merges = []
 
-        best_objective_local = float('inf')
-        best_merged_vehicle = None
-        merge_i = remove_j = None
-
         savings_iter = savings_generator(customers, depot, customer_to_vehicle, cutoff=cutoff)
-        
+
         for (i, j), saving in savings_iter:
 
             vehicle_index_i = customer_to_vehicle.get(i)
             vehicle_index_j = customer_to_vehicle.get(j)
 
             merged_vehicle = switcher.get(strategy, lambda: "unknown")(temp_vehicles[vehicle_index_i], temp_vehicles[vehicle_index_j], num_customers)
-        
+
             temp_copy = temp_vehicles.copy()
             temp_copy[vehicle_index_i] = merged_vehicle
             temp_copy.pop(vehicle_index_j)
 
             new_objective = objective_function(temp_copy, rho)
 
-            if new_objective < best_objective_local:
-                improving_merges.append((vehicle_index_i, vehicle_index_j, merged_vehicle))
+            improving_merges.append((vehicle_index_i, vehicle_index_j, merged_vehicle, new_objective))
 
-        merge_i, remove_j, best_merged_vehicle = random.choice(improving_merges)
+        # Build RCL
+        objectives = [m[3] for m in improving_merges]
+        cmin = min(objectives)
+        cmax = max(objectives)
+
+        threshold = cmin + alpha * (cmax - cmin)
+
+        RCL = [m for m in improving_merges if m[3] <= threshold]
+
+        # Pick randomly from the restricted list
+        merge_i, remove_j, best_merged_vehicle, _ = random.choice(RCL)
 
         temp_vehicles[merge_i] = best_merged_vehicle
         temp_vehicles[remove_j].path = []
