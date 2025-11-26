@@ -21,11 +21,11 @@ def solve(customers, initial_solution, to_fulfilled, rho, neighborhood_structure
 
     best_solution = copy.deepcopy(initial_solution)
 
-    statistic = Statistic(best_solution, rho)
-
     # If the solution is empty, it will be completed first
     if not is_solution_valid(best_solution, to_fulfilled):
         best_solution = construction.solve(customers, best_solution, to_fulfilled, rho, strategy="with_reordering")
+
+    statistic = Statistic(best_solution, rho)
 
     while True:
         current_solution = choose_neighbor(best_solution, customers, neighborhood_structure, improvement_strategy, to_fulfilled, rho)
