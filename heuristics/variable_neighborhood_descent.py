@@ -36,16 +36,15 @@ def solve(customers, initial_solution, to_fulfilled, rho, neighborhood_structure
     while l < l_max:
         current_solution = choose_neighbor(best_solution, customers, neighborhood_structures[l], improvement_strategy, to_fulfilled, rho)
 
-
-
         if current_solution is None:
             l = l + 1
-            statistic.iterations += 1
             continue
         else:
             best_solution = current_solution
-            statistic.update(current_solution, rho)
             l = 0
+
+        statistic.update(best_solution, rho)
+
     if output_statistic:
         return best_solution, statistic
     else:

@@ -27,13 +27,14 @@ def solve(customers, vehicles, to_fulfilled, rho, output_statistic=False):
         temp_solution = randomized_construction(customers, temp_solution, to_fulfilled, rho)
         current_solution = variable_neighborhood_descent(customers, temp_solution, to_fulfilled, rho)
 
-        statistic.update(current_solution, rho)
-
         if best_solution is None or objective_function(best_solution, rho) > objective_function(current_solution, rho):
             best_solution = current_solution
             no_improvement = 0
         else:
             no_improvement += 1
+
+        statistic.update(best_solution, rho)
+
     if output_statistic:
         return best_solution, statistic
     else:
