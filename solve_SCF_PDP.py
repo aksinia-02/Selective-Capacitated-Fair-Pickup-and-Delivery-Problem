@@ -90,18 +90,6 @@ def process_for_statistic(heuristic_type, input_file, output_path, neighborhood,
         vehicles = construction(customers, vehicles, to_fulfilled, rho, strategy="with_reordering")
 
 
-    time_baseline_ref = 0.7540791034698486
-    time_baseline = 0
-
-    to_fulfilled_baseline, rho_baseline, vehicles_baseline, customers_baseline = read_input_file(
-            f'.\\instances\\50\\competition\\instance61_nreq50_nveh2_gamma44.txt')
-    start_time = time.time()
-    local_search(customers_baseline, vehicles_baseline, to_fulfilled_baseline, rho_baseline)
-    end_time = time.time()
-    time_baseline += end_time - start_time
-    speed_factor = time_baseline / time_baseline_ref
-
-
     start_time = time.time()
     if strategy is not None:
         if neighborhood is not None:
@@ -120,13 +108,12 @@ def process_for_statistic(heuristic_type, input_file, output_path, neighborhood,
 
     end_time = time.time()
     elapsed_time = end_time - start_time
-    normalized_time = elapsed_time / speed_factor
 
     obj_func = round(objective_function(result, rho), 2)
 
     save_results(output_path, result)
 
-    return obj_func, normalized_time, statistic
+    return obj_func, elapsed_time, statistic
 
 
 def main():
