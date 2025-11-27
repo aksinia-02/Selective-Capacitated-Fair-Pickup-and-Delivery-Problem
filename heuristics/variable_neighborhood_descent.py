@@ -20,7 +20,7 @@ def solve(customers, initial_solution, to_fulfilled, rho, neighborhood_structure
     """
 
     if neighborhood_structures is None:
-        neighborhood_structures = ["pickup_relocate", "dropoff_relocate", "exchange"]
+        neighborhood_structures = ["pickup_relocate", "dropoff_relocate", "exchange", "move"]
 
     best_solution = copy.deepcopy(initial_solution)
 

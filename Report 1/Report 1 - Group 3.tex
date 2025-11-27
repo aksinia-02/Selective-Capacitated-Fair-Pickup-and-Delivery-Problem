@@ -1,0 +1,153 @@
+\documentclass[12pt]{article}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+
+\graphicspath{ {./images/} }
+
+
+\title{\vspace{2cm}
+    \Huge \textbf{Heuristic Optimization Techniques}\\[2cm]
+    \LARGE Report 1
+    \vspace{10cm}
+    
+    \large Aksinia Vorobeva, 12044614  \\ Marcel Korinek, 12220824
+    }
+
+\begin{document}
+
+\maketitle
+
+
+\pagebreak
+
+\section{Description of Algorithms}
+
+Every algorithm shares five input parameters: \emph{customers}, \emph{vehicles}, \emph{to$\_$fulfilled}, \emph{rho} and \emph{output$\_$statistic}. 
+
+The \emph{output$\_$statistic} parameter is irrelevant for the functionality of the algorithms, as it is only relevant for the experimental evaluation.
+
+The input parameter \emph{customers} is a list of Customer objects, each of which contain the relevant information for each request (coordinates of pickup and drop-off locations and amount of goods).
+
+The most important parameter is \emph{vehicles}, which is also our choice of a solution representation for this problem. It is a list of Vehicle objects. Each Vehicle object contains a list of points, which is the path this vehicle will be assigned to.
+
+The parameter \emph{rho} is the fairness weight and \emph{to$\_$fulfilled} describes the minimum number of requests to
+be served.
+
+\subsection{Deterministic Construction Heuristic}
+
+We have two different variants of the deterministic construction heuristic. One of them is a greedy algorithm and does not reconsider any choices made and the other one has a reordering step in every iteration, which improves the solution quality massively.
+
+The basic idea is to first create a temporary vehicle for each customer request, each assigned with the path only satisfying the corresponding request (depot $\rightarrow$ pickup $\rightarrow$ dropoff $\rightarrow$ depot). After that, for any two customers 
+i and j, a savings value is computed as:
+
+\medskip
+
+
+$s = (\text{depot.calculate}\_\text{distance}(\text{customers}[i].\text{pickup}) + \text{depot}.\text{calculate}\_\text{distance}(\text{customers}[j].\text{pickup}) - \text{customers}[i].\text{pickup}.\text{calculate}\_\text{distance}(\text{customers}[j].\text{pickup}))$
+
+\medskip
+
+At most the best $3$ $*$ \textbf{number of customers} results will then be stored together with the corresponding customer pair in descending order in a heap.
+
+Then, for every of those customer pairs in this heap, the two vehicles containing these customer points are temporarily merged together and the best of those merged vehicles is chosen. After that the $n_k$ vehicles with the most points in its path are considered and it is checked if they satisfy enough requests. If not, the procedure is repeated by recalculating the savings and else these vehicles are returned.
+
+\bigskip
+
+The merging part is where the two different strategies come to play. In the \emph{pure} variant, the merging is trivial. All points except for the depot points are simply appended to the path of one vehicle and then the depot point is manually added back to the end.
+
+The \emph{with$\_$reordering} strategy breaks the pairwise ordering in vehicle paths and always creates a new merged vehicle path by greedily appending the nearest point from one of the two vehicle paths to be merged that does not exceed the load limit.
+
+\subsection{Randomized Construction Heuristic}
+
+The only difference to the deterministic construction heuristic is that instead of one best merged vehicle in each iteration a restricted candidate list of merged vehicles is stored and one of them is chosen randomly. For this purpose, there exists another input parameter alpha, which defines how good the merged vehicles to be considered need to be at least. Its default is set to 0.3. A value of 1 would be completely random and a value of 0 would be the same as the deterministic construction.
+
+\subsection{Pilot Search}
+
+The pilot search uses the pure deterministic construction heuristic in order to compare the quality of each incomplete solution per iteration.
+
+The set of incomplete solutions of an iteration is constructed as follows. The first unfulfilled customer request in the list is treated as a short path (pickup, drop-off) which is inserted into each possible position right after the first depot point or right after another drop-off point. This ensures that the load is never exceeded and aligns perfectly with the construction heuristic, which also assigns pair-wise. 
+
+\subsection{Local Search}
+
+The local search has the two additional input parameters \emph{neighborhood$\_$structure} and \emph{improvement$\_$strategy}. They control which neighborhood structure and which improvement strategy the local search should use.
+
+The general implementation is very basic, the interesting parts lie within the neighborhood structures described in Section~\ref{neighborhood}.
+
+\subsubsection{Neighborhood Structures}
+
+We implemented five different neighborhood structures, which are described in the following paragraphs.
+
+\label{neighborhood}
+
+\paragraph{Exchange}
+
+The exchange neighborhood was the first structure we considered. As the name suggests, the current occurrences of pickup and drop-off points of two different customers are simply swapped. 
+
+\bigskip
+
+There are three different cases that need to be considered:
+
+\medskip
+
+If both customer requests are currently fulfilled by one vehicle, then the exchange happens only inside one vehicle.
+
+\medskip
+
+Another possible case is that one customer request is fulfilled by one and the other by another vehicle. In this case the exchange is happening between two different vehicles.
+
+\medskip
+
+In the third case one customer request is fulfilled by one vehicle and the other one is not yet fulfilled.
+
+\bigskip
+
+Independent of the case, the pickup point of the one customer is replaced by the pickup point of the other customer inside a vehicle path. The same holds for the corresponding drop-off points. The whole neighborhood consists of every possible swap and is therefore bounded by $\frac{n(n-1)}{2}$.
+
+\paragraph{Pickup Relocate}
+
+The pickup relocate neighborhood is even simpler than that. Here, a pickup point is relocated into every possible valid position of the same vehicle path. Relocations are only possible after the first depot point up until the corresponding drop-off point. With n customer requests in the worst case this yields approximately \textbf{number of points in the vehicle path} $*$ \textbf{n} different possibilities.
+
+\paragraph{Dropoff Relocate}
+
+This neighborhood is technically the same as the pickup relocate, only that instead of pickup points, drop-off points are relocated.
+
+\paragraph{Remove and Append}
+
+This neighborhood was a simple try to realize a move of customer requests to other vehicles. A pickup and drop-off point is removed from one vehicle path and appended to another vehicle path (right before the second depot point). The size of this neighborhood is at most n $*$ ($n_k$ - 1)
+
+\paragraph{Move}
+
+The move neighborhood is an improvement for the remove and append neighborhood, at cost of performance. Instead of simply appending both points to a path, all different possibilities to insert a pickup point and drop-off point into the path are considered. (a drop-off is not forced to be directly after the pickup point). This increases the size of the neighborhood to $n^3$ $*$ ($n_k$ - 1) (This is a loose upper bound)
+
+\paragraph{Notes on Efficiency:}
+
+The neighborhood structures were initially implemented as a full set of solutions, which means that for the best-improvement strategy we had to iterate over the whole set. Since this means that we would have to iterate two times over the set (since creating the set is also one full iteration), we decided to not return a set of all valid neighbors, but instead to choose only one neighbor depending on the strategy. This not only reduced the number of iterations by 1, but this also made the computation actually feasible, since in the initial idea for every neighbor a copy of the solution was created, which does not scale very well. Now, there is only one necessary deep copy for the neighbor we want to choose.
+
+\medskip
+
+In order to do this, we had to implement functions that compute (predict) the objective values of different neighbors without changing or duplicating the initial solution. In addition to that, we also used delta evaluation for the computation of the objective values by only updating necessary parts. We implemented this within the ObjectiveTracker object.
+This allowed us to update the objective value in constant time instead of linear time, which would be needed in order to iterate over all vehicles (so instead of $O(n_k)$ we get $O(1)$).
+
+
+
+\subsection{Variable Neighborhood Descent}
+
+In contrast to the local search, the algorithm for the variable neighborhood descent takes a list of neighborhood structures as an input. The default list is ["\emph{pickup$\_$relocate}", "\emph{dropoff$\_$relocate}", "\emph{exchange}", "\emph{move}"].
+
+The implementation of variable neighborhood descent does not contain any problem specific modifications. Again, I refer to the neighborhood structures defined in Section~\ref{neighborhood}.
+
+\subsection{Greedy Randomized Adaptive Search Procedure}
+
+The greedy randomized adaptive search procedure uses the randomized construction heuristic internally and has a fixed number of iterations without improvement as the stopping criteria. For improving on the received solution from the construction this algorithm uses variable neighborhood descent with its chosen default values.
+
+\subsection{Simulated Annealing}
+
+\pagebreak
+
+
+\section{Experimental Results}
+
+
+
+\end{document}

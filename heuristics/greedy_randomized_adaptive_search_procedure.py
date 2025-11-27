@@ -18,13 +18,13 @@ def solve(customers, vehicles, to_fulfilled, rho, output_statistic=False):
 
     best_solution = None
     no_improvement = 0
-    max_no_improvement = 3
+    max_no_improvement = 5
 
     statistic = Statistic()
 
     while no_improvement < max_no_improvement:
         temp_solution = copy.deepcopy(vehicles)
-        temp_solution = randomized_construction(customers, temp_solution, to_fulfilled, rho)
+        temp_solution = randomized_construction(customers, temp_solution, to_fulfilled, rho, strategy="with_reordering")
         current_solution = variable_neighborhood_descent(customers, temp_solution, to_fulfilled, rho)
 
         if best_solution is None or objective_function(best_solution, rho) > objective_function(current_solution, rho):
