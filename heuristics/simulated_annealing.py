@@ -7,6 +7,8 @@ from classes.Vehicle import Vehicle
 import math
 import copy
 
+vehicle_dict = None
+
 from classes.ObjectiveTracker import ObjectiveTracker
 
 def group_customers_by_vehicle(customer_to_vehicle):
@@ -80,8 +82,6 @@ def best_insertion(vehicle, customer):
     # Build new path
     vehicle.simple_add_point_after(best_before_P, customer.pickup)
     vehicle.simple_add_point_after(best_before_D, customer.dropoff)
-    if vehicle.path_length < 0:
-        return None
 
     return vehicle
 
@@ -90,7 +90,7 @@ def swap_two_customers(x, cust1, cust2, veh1, veh2, n):
 
     result_vehicles = copy.deepcopy(x)
 
-    #print(f"Swap {cust1.index} with {cust2.index} with vehicles {veh1} and {veh2}")
+    #print(f"\nSwap {cust1.index} with {cust2.index} with vehicles {veh1} and {veh2}")
 
     vehicle_1 = result_vehicles[veh1] if veh1 < len(x) else None
     vehicle_2 = result_vehicles[veh2] if veh2 < len(x) else None
@@ -100,14 +100,16 @@ def swap_two_customers(x, cust1, cust2, veh1, veh2, n):
     pickup_c2 = cust2.pickup
     dropoff_c2 = cust2.dropoff
 
+
     if vehicle_1 is not None:
-        vehicle_1.simple_remove_point(cust1.pickup)
-        vehicle_1.simple_remove_point(cust1.dropoff)
-        vehicle_1 = best_insertion(vehicle_1, cust1)
+        vehicle_1.simple_remove_point(pickup_c1)
+        vehicle_1.simple_remove_point(dropoff_c1)
+        vehicle_1 = best_insertion(vehicle_1, cust2)
+
     if vehicle_2 is not None:
-        vehicle_2.simple_remove_point(cust2.pickup)
-        vehicle_2.simple_remove_point(cust2.dropoff)
-        vehicle_2 = best_insertion(vehicle_2, cust2)
+        vehicle_2.simple_remove_point(pickup_c2)
+        vehicle_2.simple_remove_point(dropoff_c2)
+        vehicle_2 = best_insertion(vehicle_2, cust1)
 
     if vehicle_1:
         result_vehicles[veh1] = vehicle_1
@@ -116,13 +118,9 @@ def swap_two_customers(x, cust1, cust2, veh1, veh2, n):
     return result_vehicles
 
 
-def random_choose_swap_two_customers(x, customers, customer_to_vehicle, n):
+def random_choose_swap_two_customers(x, customers, n):
 
-    vehicle_to_customers = group_customers_by_vehicle(customer_to_vehicle)
-    not_fulfilled = set(range(1, n + 1)) - set(customer_to_vehicle.keys())
-    vehicle_list = list(vehicle_to_customers.items()) + [(len(x), list(not_fulfilled))]
-
-    (veh1, custs1), (veh2, custs2) = random.sample(vehicle_list, 2)
+    (veh1, custs1), (veh2, custs2) = random.sample(list(vehicle_dict.items()), 2)
 
     c1 = random.choice(custs1)
     c2 = random.choice(custs2)
@@ -130,15 +128,15 @@ def random_choose_swap_two_customers(x, customers, customer_to_vehicle, n):
     cust1 = customers[c1 - 1]
     cust2 = customers[c2 - 1]
 
-    return swap_two_customers(x, cust1, cust2, veh1, veh2, n)
+    return swap_two_customers(x, cust1, cust2, veh1, veh2, n), cust1, cust2, veh1, veh2
 
-def estimate_average_delta(x, customers, customer_to_vehicle, n, k=30, rho=1):
+def estimate_average_delta(x, customers, n, k=30, rho=1):
 
     deltas = []
     f_old = ObjectiveTracker(x, rho).compute_objective()
 
     for _ in range(k):
-        x_new = random_choose_swap_two_customers(x, customers, customer_to_vehicle, n)
+        x_new, _, _, _, _ = random_choose_swap_two_customers(x, customers, n)
         f_new = ObjectiveTracker(x_new, rho).compute_objective()
         delta = f_new - f_old
         if delta > 0:
@@ -149,23 +147,23 @@ def estimate_average_delta(x, customers, customer_to_vehicle, n, k=30, rho=1):
 
     return sum(deltas) / len(deltas)
 
-def compute_initial_temperature(x, customers, customer_to_vehicle, n, rho=1, P0=0.03):
+def compute_initial_temperature(x, customers, n, rho=1, P0=0.03):
     """
     Computes the initial temperature T_init for SA.
     P0 = initial acceptance probability for worse moves (0.03 = 3%)
     """
-    delta_avg = estimate_average_delta(x, customers, customer_to_vehicle, n, k=50, rho=rho)
+    delta_avg = estimate_average_delta(x, customers, n, k=50, rho=rho)
     T_init = -delta_avg / math.log(P0)
     return T_init
 
-def simulated_annealing(x0, customers, customer_to_vehicle, n, rho, statistic, alpha=0.95, Tmin=1e-3, max_iters=1000, output_statistic=False):
+def simulated_annealing(x0, customers, n, rho, statistic, alpha=0.95, no_improvement_level=8, max_iters=1000, output_statistic=False):
 
     x = x0
     tracker = ObjectiveTracker(x, rho)
     f_x = tracker.compute_objective()
     print(f"initial solution with lenght {f_x}")
 
-    T = compute_initial_temperature(x, customers, customer_to_vehicle, n, rho)
+    T = compute_initial_temperature(x, customers, n, rho)
     print(f"Initial temperature = {T:.4f}")
 
     neighborhood_size = n * (n - 1) / 2
@@ -173,15 +171,17 @@ def simulated_annealing(x0, customers, customer_to_vehicle, n, rho, statistic, a
     print(f"equilibrium: {equilibrium}")
 
     iters = 0
+    iters_no_improvement = 0
 
     best_cost = float("inf")
     best_solution = None
 
-    while T > Tmin and iters < max_iters:
+    while iters_no_improvement < no_improvement_level and iters < max_iters:
+        flag_improvement = False
 
         for _ in range(equilibrium):
 
-            x_new = random_choose_swap_two_customers(x, customers, customer_to_vehicle, n)
+            x_new, cust1, cust2, veh1, veh2 = random_choose_swap_two_customers(x, customers, n)
             tracker_new = ObjectiveTracker(x_new, rho)
             f_new = tracker_new.compute_objective()
 
@@ -192,6 +192,12 @@ def simulated_annealing(x0, customers, customer_to_vehicle, n, rho, statistic, a
                 f_x = f_new
                 tracker = tracker_new
                 #print(f"new solution with lenght {f_new} accepted")
+                vehicle_dict[veh1].remove(cust1.pickup.index)
+                vehicle_dict[veh1].extend([cust2.pickup.index])
+
+                vehicle_dict[veh2].remove(cust2.pickup.index)
+                vehicle_dict[veh2].extend([cust1.pickup.index])
+                flag_improvement = True
                 if f_new < best_cost:
                     best_cost = f_new
                     best_solution = copy.deepcopy(x)
@@ -205,6 +211,11 @@ def simulated_annealing(x0, customers, customer_to_vehicle, n, rho, statistic, a
                     f_x = f_new
                     tracker = tracker_new
                     #print(f"new solution with lenght {f_new} accepted")
+                    vehicle_dict[veh1].remove(cust1.pickup.index)
+                    vehicle_dict[veh1].extend([cust2.pickup.index])
+
+                    vehicle_dict[veh2].remove(cust2.pickup.index)
+                    vehicle_dict[veh2].extend([cust1.pickup.index])
                     if f_new < best_cost:
                         best_cost = f_new
                         best_solution = copy.deepcopy(x)
@@ -213,6 +224,10 @@ def simulated_annealing(x0, customers, customer_to_vehicle, n, rho, statistic, a
             iters += 1
             if iters >= max_iters:
                 break
+        if not flag_improvement:
+            iters_no_improvement += 1
+        else:
+            iters_no_improvement = 0
 
         T = T * alpha
         print(f"T cooled to {T:.4f}, objective value = {f_x:.2f}")
@@ -243,7 +258,12 @@ def solve(customers, vehicles, to_fulfilled, rho, output_statistic=False):
                 if p.type == 2:
                     customer_to_vehicle[p.index] = i
 
+    vehicle_to_customers = group_customers_by_vehicle(customer_to_vehicle)
+    not_fulfilled = set(range(1, len(customers) + 1)) - set(customer_to_vehicle.keys())
+    global vehicle_dict
+    vehicle_dict = dict(list(vehicle_to_customers.items()) + [(len(x), list(not_fulfilled))])
+
     objectiveTracker = ObjectiveTracker(x, rho)
 
     print("Running simulated annealing")
-    return simulated_annealing(x, customers, customer_to_vehicle, len(customers), rho, statistic, 0.95, 1e-3, 50000, output_statistic)
+    return simulated_annealing(x, customers, len(customers), rho, statistic, 0.95, 8, 10000, output_statistic)
