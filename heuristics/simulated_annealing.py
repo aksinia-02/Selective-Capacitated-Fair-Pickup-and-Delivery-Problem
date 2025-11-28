@@ -120,15 +120,20 @@ def swap_two_customers(x, cust1, cust2, veh1, veh2, n):
 
 def random_choose_swap_two_customers(x, customers, n):
 
-    (veh1, custs1), (veh2, custs2) = random.sample(list(vehicle_dict.items()), 2)
+    while True:
+        (veh1, custs1), (veh2, custs2) = random.sample(list(vehicle_dict.items()), 2)
 
-    c1 = random.choice(custs1)
-    c2 = random.choice(custs2)
+        # Make sure both vehicles have at least one customer
+        if not custs1 or not custs2:
+            continue  # reselect vehicles
+        
+        c1 = random.choice(custs1)
+        c2 = random.choice(custs2)
 
-    cust1 = customers[c1 - 1]
-    cust2 = customers[c2 - 1]
+        cust1 = customers[c1 - 1]
+        cust2 = customers[c2 - 1]
 
-    return swap_two_customers(x, cust1, cust2, veh1, veh2, n), cust1, cust2, veh1, veh2
+        return swap_two_customers(x, cust1, cust2, veh1, veh2, n), cust1, cust2, veh1, veh2
 
 def estimate_average_delta(x, customers, n, k=30, rho=1):
 
