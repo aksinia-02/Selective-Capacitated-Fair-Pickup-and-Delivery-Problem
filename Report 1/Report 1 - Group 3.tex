@@ -103,6 +103,14 @@ where $\rho$ controls the trade-off between efficiency and fairness.
 
 \end{mdframed}
 
+\subsection{Experimental Setup}
+
+All experiments were made on a machine with a AMD Ryzen 7 9800X3D and 32 RAM, running Windows 11 and Python 3.13.9.
+
+We tested every algortihm on all of the instances with size 50 and 100. For every non-deterministic algorithm we made at least three runs in order to increase the significance of the results.
+
+For each experiment, the relevant algorithm configurations are provided in the corresponding chapter.
+
 \section{Description of Algorithms}
 
 Every algorithm shares five input parameters: \emph{customers}, \emph{vehicles}, \emph{to$\_$fulfilled}, \emph{rho} and \emph{output$\_$statistic}. 
@@ -326,11 +334,34 @@ However, we wanted to know how the alpha parameter affects the quality of the so
 
 \subsection{Pilot Search}
 
-The pilot search uses the pure pure deterministic construction heuristic in order to compare the quality of each incomplete solution per iteration.
+The pilot search uses the pure deterministic construction heuristic in order to compare the quality of each incomplete solution per iteration.
 
 The set of incomplete solutions of an iteration is constructed as follows. The first unfulfilled customer request in the list is treated as a short path (pickup, drop-off) which is inserted into each possible position right after the first depot point or right after another drop-off point. This ensures that the load is never exceeded and aligns perfectly with the construction heuristic, which also assigns pair-wise.
 
-The results of how much the solution improved after applying Pilot Search to pure deterministic construction heuristic can be found in Figure~\ref{fig:comparison_ps_pre_c})
+The pilot search performs at most $n$ iterations.  
+In each iteration, the candidate set contains
+\[
+|C| = O(n_K \cdot n)
+\]
+because every unserved request can be inserted into each of the $n_K$ vehicles at $O(n)$ admissible positions.
+
+For every candidate $c \in C$, we either run the construction heuristic or reuse a cached result.  
+The construction heuristic runs in $O(n_K n^{2})$ time.
+
+Hence one iteration costs
+\[
+O(|C| \cdot n_K n^{2}) 
+= O(n_K n \cdot n_K n^{2})
+= O(n_K^2 \cdot n^{3}).
+\]
+
+Over $n$ iterations the total runtime is
+\[
+O(n_K^2 \cdot n^{4}).
+\]
+
+
+The results of how much the solution improved after applying Pilot Search to pure deterministic construction heuristic can be found in Figure~\ref{fig:comparison_ps_pre_c}.
 
 \begin{figure}[H]
     \centering
@@ -353,7 +384,7 @@ We implemented five different neighborhood structures, which are described in th
 
 \paragraph{Exchange}
 
-The exchange neighborhood was the first structure we considered. As the name suggests, the current occurrences of pickup and drop-off points of two different customers are simply swapped. 
+The exchange neighborhood was the first structure we implemented. As the name suggests, the current occurrences of pickup and drop-off points of two different customers are simply swapped. 
 
 \bigskip
 
@@ -373,11 +404,11 @@ In the third case one customer request is fulfilled by one vehicle and the other
 
 \bigskip
 
-Independent of the case, the pickup point of the one customer is replaced by the pickup point of the other customer inside a vehicle path. The same holds for the corresponding drop-off points. The whole neighborhood consists of every possible swap and is therefore bounded by $\frac{n(n-1)}{2}$.
+Independent of the case, the pickup point of the one customer is replaced by the pickup point of the other customer inside a vehicle path. The same holds for the corresponding drop-off points. The whole neighborhood consists of every possible swap and is therefore bounded in size by $O(\frac{n(n-1)}{2})$.
 
 \paragraph{Pickup Relocate}
 
-The pickup relocate neighborhood is even simpler than that. Here, a pickup point is relocated into every possible valid position of the same vehicle path. Relocations are only possible after the first depot point up until the corresponding drop-off point. With n customer requests in the worst case this yields approximately \textbf{number of points in the vehicle path} $*$ \textbf{n} different possibilities.
+The pickup relocate neighborhood is even simpler than that. Here, a pickup point is relocated into every possible valid position of the same vehicle path. Relocations are only possible after the first depot point up until the corresponding drop-off point. With n customer requests in the worst case this yields approximately \textbf{n} $*$ \textbf{number of points in the corresponding vehicle path} different possibilities.
 
 \paragraph{Dropoff Relocate}
 
@@ -385,7 +416,7 @@ This neighborhood is technically the same as the pickup relocate, only that inst
 
 \paragraph{Remove and Append}
 
-This neighborhood was a simple try to realize a move of customer requests to other vehicles. A pickup and drop-off point is removed from one vehicle path and appended to another vehicle path (right before the second depot point). The size of this neighborhood is at most n $*$ ($n_k$ - 1)
+This neighborhood was a simple try to realize a move of customer requests to other vehicles. A pickup and drop-off point is removed from one vehicle path and appended to another vehicle path (right before the second depot point). The size of this neighborhood is at most n $*$ ($n_K$ - 1)
 
 \paragraph{Move}
 
@@ -398,10 +429,11 @@ The neighborhood structures were initially implemented as a full set of solution
 \medskip
 
 In order to do this, we had to implement functions that compute (predict) the objective values of different neighbors without changing or duplicating the initial solution. In addition to that, we also used delta evaluation for the computation of the objective values by only updating necessary parts. We implemented this within the ObjectiveTracker object.
-This allowed us to update the objective value in constant time instead of linear time, which would be needed in order to iterate over all vehicles (so instead of $O(n_k)$ we get $O(1)$).
+This allowed us to update the objective value in constant time instead of linear time, which would be needed in order to iterate over all vehicles (so instead of $O(n_K)$ we get $O(1)$).
 
 \subsubsection{Comparison of Neighborhood Structures}
 
+Figure~\ref{fig:comparison_ns_ls} and Figure~\ref{fig:comparison_ns_ls_1} show the comparison of objective values and runtimes of local search using these different neighborhood structures. Interestingly, the drop-off relocate neighborhood leads to the best results most of the time. The structure with the highest objective values is the move and append neighborhood, followed by the move neighborhood. Neighborhoods that apply changes within vehicles therefore seem to lead to better results, at least for the initial instances returned by our construction heuristic with reordering. While returning the results with best quality, the dropoff relocate neighborhood is also the most time consuming in general with the largest variance of speed.
 
 \begin{figure}[H]
     \centering
@@ -418,6 +450,10 @@ This allowed us to update the objective value in constant time instead of linear
 \end{figure}
 
 \subsubsection{Comparison of Step functions for Neighborhood structure dropoff relocate}
+
+In this chapter, the two step functions best improvement and first improvement are compared to each other. Since the graphs look similar, we decided to only include the graphs for the neighborhood structure with the best results, which is the dropoff relocate neighborhood.
+
+When comparing the first improvement strategy with the best improvement strategy, then one can see in Figure~\ref{fig:comparison_step_function_ls} and Figure~\ref{fig:comparison_step_function_ls_1} that the first improvement strategy leads in most cases to equal or better solutions, while being also much slower in runtime. These results might seem to be counterintuitive at first, but at least the reason for the increased runtime is very clear. Since the first improvement is chosen instead of the best possible, typically smaller steps towards a local optimum are made. This leads to more iterations that are necessary, until a local optimum is reached. For the solution quality our guess is that first improvement manages to prevent getting stuck too early in contrast to best improvement, who chooses the next move greedily.  
 
 \begin{figure}[H]
     \centering
@@ -442,6 +478,8 @@ The implementation of variable neighborhood descent does not contain any problem
 
 \subsubsection{Comparison of Step Functions}
 
+As it was with the local search, the variable neighborhood descent also performs better when using first improvement. However, the running times are much faster and more stable for best improvement.
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{graphics/comparison_step_function_vdn.png}
@@ -459,6 +497,10 @@ The greedy randomized adaptive search procedure uses the randomized construction
 
 
 \section{Experimental Results}
+
+For the comparison of all algorithms we chose the best configuration for each algorithm. As presented in the previous chapters, these are: construction und randomized construction with reordering, the first improvement strategy for local search and variable neighborhood descent and the dropoff relocate neighborhood for local search.
+
+
 
 \begin{figure}[H]
     \centering
