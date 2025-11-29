@@ -2,6 +2,12 @@
 \usepackage[margin=2cm]{geometry}
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{graphicx}
+% For subfigure environments
+\usepackage{subcaption}
+\usepackage[framemethod=tikz]{mdframed}
+
+% Optional: for [H] specifier
+\usepackage{float}
 
 \graphicspath{ {./images/} }
 
@@ -21,52 +27,317 @@
 
 \pagebreak
 
+\section{Problem Description}
+\begin{mdframed}[
+    linecolor=black,
+    linewidth=1.5pt,
+    roundcorner=5pt,
+    backgroundcolor=blue!5,
+    userdefinedwidth=\textwidth,
+]
+\textbf{Selective Capacitated Fair Pickup and Delivery Problem (SCF-PDP)}
+
+\vspace{0.7em}
+\textbf{Graph model:}  
+Complete directed graph $G = (V, A)$, where:
+\begin{itemize}
+    \item $V$ contains the depot as well as all pickup and drop-off locations.
+    \item $A = \{(u,v) : u, v \in V, u \neq v\}$ represents travel arcs.
+    \item Each arc $(u,v)$ has an associated distance  
+    \[
+        a_{u,v} = \left\lceil \sqrt{(x_u - x_v)^2 + (y_u - y_v)^2} \right\rceil,
+    \]
+    where $(x_u, y_u)$ are the coordinates of location $u$.
+\end{itemize}
+
+\vspace{0.5em}
+\textbf{n Customer requests:}   
+For each request $i \in \{1, \dots, n\}$ there are:
+\[
+v_i^{\uparrow} \in V \quad \text{(pickup location)}, \qquad
+v_i^{\downarrow} \in V \quad \text{(drop-off location)}.
+\]
+
+The solution must serve at least $\gamma \le n$ of them.
+
+\vspace{0.5em}
+\textbf{Vehicles:}  
+A fleet $K$ of $n_K$ identical vehicles is available, each with capacity $C$ and starting/ending at the depot.
+
+\vspace{0.7em}
+\textbf{Feasible solution:}  
+A solution consists of a route $R_k$ for each vehicle $k \in K$, where $R_{k,i}$ denotes the $i$-th stop. Each solution must satisfy:
+\begin{itemize}
+    \item Vehicle load never exceeds capacity $C$
+    \item Each served request is fully handled by a single vehicle
+    \item At least $\gamma$ requests are served in total
+\end{itemize}
+
+The travel duration of route $R_k$ is
+\[
+d(R_k)
+= a_{\text{depot}, R_{k,1}}
++ a_{R_{k,|R_k|}, \text{depot}}
++ \sum_{(u,v)\in R_k} a_{u,v}.
+\]
+
+\vspace{0.5em}
+\textbf{Fairness measure:}  
+We use the Jain fairness index:
+\[
+J(R)
+=
+\frac{\left(\sum_{k \in K} d(R_k)\right)^2}
+{\,n_K \cdot \sum_{k \in K} d(R_k)^2\, }.
+\]
+
+\vspace{0.7em}
+\textbf{Objective:}  
+Minimize the total travel duration penalized by unfairness:
+\[
+\sum_{k \in K} d(R_k)
+\;+\;
+\rho \cdot (1 - J(R)),
+\]
+where $\rho$ controls the trade-off between efficiency and fairness.
+
+\end{mdframed}
+
 \section{Description of Algorithms}
 
 Every algorithm shares five input parameters: \emph{customers}, \emph{vehicles}, \emph{to$\_$fulfilled}, \emph{rho} and \emph{output$\_$statistic}. 
 
-The \emph{output$\_$statistic} parameter is irrelevant for the functionality of the algorithms, as it is only relevant for the experimental evaluation.
+\vspace{0.6em}
+\textbf{Customers.}
 
-The input parameter \emph{customers} is a list of Customer objects, each of which contain the relevant information for each request (coordinates of pickup and drop-off locations and amount of goods).
+The input parameter \emph{customers} is a list of \texttt{Customer} objects, each customer contains the relevant information for each request:
 
-The most important parameter is \emph{vehicles}, which is also our choice of a solution representation for this problem. It is a list of Vehicle objects. Each Vehicle object contains a list of points, which is the path this vehicle will be assigned to.
+\begin{itemize}
+    \item a unique identifier
+    \item a pickup location and a drop-off location, both represented as \texttt{Point} objects
+    \item the amount of goods to be transported
+\end{itemize}
 
-The parameter \emph{rho} is the fairness weight and \emph{to$\_$fulfilled} describes the minimum number of requests to
+A \texttt{Point} object contains the coordinates, the point type (depot, pickup, drop-off),
+and the quantity of goods associated with it (if the point type is pickup, then  the quantity of goods is positive for pickups, if it is drop-off, then the quantity is negative).
+
+\vspace{0.6em}
+\textbf{Vehicles.}
+
+The most important parameter is \emph{vehicles}, which is also our choice of a solution representation for this problem. It is a list of \texttt{Vehicle} objects.
+Each vehicle maintains the following:
+\begin{itemize}
+    \item its capacity
+    \item its current load and position
+    \item its route, stored as a sequence of \texttt{Point} objects
+    \item its accumulated path length
+    \item a load-history tracing the load after each visited point
+\end{itemize}
+Together, the set of vehicles encodes the full multi-vehicle our routing solution, including which requests are served and in what order.
+
+\vspace{0.6em}
+\textbf{Minimum Requests to Serve.}
+
+The parameter \emph{to\_fulfill} describes the minimum number of requests to
 be served.
+
+\vspace{0.6em}
+\textbf{Fairness Weight \boldmath$\rho$.}
+
+The parameter \emph{rho} is the fairness weight in the objective function.
+It is passed to the \texttt{ObjectiveTracker}, which evaluates
+\[
+\text{Objective}
+=
+\sum_{k} d(R_k)
+\;+\;
+\rho \cdot (1 - J(R)),
+\]
+and updates values efficiently using delta evaluation.
+
+\vspace{0.6em}
+\textbf{Output Statistics.}
+
+The parameter \texttt{output\_statistic} is irrelevant for the functionality of the algorithms, as it is only relevant for the experimental evaluation and result analysis. We save the collection of detailed performance data using the \texttt{Statistic} class,
+including:
+\begin{itemize}
+    \item the objective value over time
+    \item fairness values over time
+    \item total route duration over time
+    \item the number of iterations performed
+\end{itemize}
+
+\vspace{1em}
+\textbf{Algorithm output.}
+
+Ultimately, at the end of the algorithm, we receive:
+
+\begin{itemize}
+    \item a file in .txt format with the final solution to the problem
+    \item statistical data
+    \item a graphical representation of the solution (see Figure~\ref{fig:graph_rep_sa})
+\end{itemize}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/output_1.png}
+    \caption{Graphical representation of SA output}
+    \label{fig:graph_rep_sa}
+\end{figure}
 
 \subsection{Deterministic Construction Heuristic}
 
-We have two different variants of the deterministic construction heuristic. One of them is a greedy algorithm and does not reconsider any choices made and the other one has a reordering step in every iteration, which improves the solution quality massively.
+\subsubsection{The Basic Idea}
 
-The basic idea is to first create a temporary vehicle for each customer request, each assigned with the path only satisfying the corresponding request (depot $\rightarrow$ pickup $\rightarrow$ dropoff $\rightarrow$ depot). After that, for any two customers 
-i and j, a savings value is computed as:
+The first algorithm is a greedy variant of the Savings heuristic for the \textsc{(capacitated) vehicle routing problem (VRP)}. Our Deterministic Construction Heuristic is based on the modified Clarke-Wright Savings principle but contains a number of extensions:
 
-\medskip
+\begin{itemize}
+    \item Each customer is initially served by a separate temporary vehicle (one client per vehicle). The path is \[
+        \text{depot} \rightarrow \text{pickup}_i \rightarrow \text{dropoff}_i \rightarrow \text{depot}.
+    \]
+    \item After that, for any two customers i and j, a savings value is computed by lazy evaluation as:
+    \[
+    S_{ij} = D(\text{depot}, i) + D(\text{depot}, j) - D(i, j),
+\] 
+where $D(a,b)$ — the distance between points $a$, $b$. At most the best $3$ $*$ \textbf{number of customers} results will be stored together with the corresponding customer pair in descending order in a \texttt{heapq}.
+    \item The choice of a merger aims to minimize the objective function
+    \item The process continues until the required number of clients served is reached
+\end{itemize}
 
+\vspace{0.6em}
+\textbf{Attempt to merge paths.}
 
-$s = (\text{depot.calculate}\_\text{distance}(\text{customers}[i].\text{pickup}) + \text{depot}.\text{calculate}\_\text{distance}(\text{customers}[j].\text{pickup}) - \text{customers}[i].\text{pickup}.\text{calculate}\_\text{distance}(\text{customers}[j].\text{pickup}))$
+If customers $i$ and $j$ belong to different vehicles, then we merge the corresponding paths. We have implemented two different strategies for merging:
 
-\medskip
+\paragraph{A. \texttt{merge\_without\_reordering} — pure construction.}
 
-At most the best $3$ $*$ \textbf{number of customers} results will then be stored together with the corresponding customer pair in descending order in a heap.
+The paths are connected sequentially:
+\[
+    \text{Route A: depot} \rightarrow \dots \rightarrow \text{depot},
+\]
+\[
+    \text{Route B: depot} \rightarrow \dots \rightarrow \text{depot},
+\]
+\[
+    \text{Merged: depot} \rightarrow A \rightarrow B \rightarrow \text{depot}.
+\]
 
-Then, for every of those customer pairs in this heap, the two vehicles containing these customer points are temporarily merged together and the best of those merged vehicles is chosen. After that the $n_k$ vehicles with the most points in its path are considered and it is checked if they satisfy enough requests. If not, the procedure is repeated by recalculating the savings and else these vehicles are returned.
+\paragraph{B. \texttt{merge\_with\_reordering}.}
 
-\bigskip
+Pickups and dropoffs for two routes are combined into a single pool. A new route is constructed as follows:
 
-The merging part is where the two different strategies come to play. In the \emph{pure} variant, the merging is trivial. All points except for the depot points are simply appended to the path of one vehicle and then the depot point is manually added back to the end.
+\begin{enumerate}
+\item Start at the depot.
+\item At each step, select the closest available pickup that meets the load restrictions.
+\item If there is no pickup that makes the solution feasible, then add the corresponding dropoff, thereby reducing the load.
+\item After the pool is exhausted, a return to the depot is added.
+\end{enumerate}
 
-The \emph{with$\_$reordering} strategy breaks the pairwise ordering in vehicle paths and always creates a new merged vehicle path by greedily appending the nearest point from one of the two vehicle paths to be merged that does not exceed the load limit.
+\vspace{0.6em}
+\textbf{Evaluation of the quality of an intermediate solutions.}
+
+After each potential merge, an updated list of routes is generated, where route $j$ is removed and route $i$ is replaced with the merged route. The objective function is then calculated:
+\[
+\text{objective} = \text{distance} + \rho \cdot (\text{number of vehicles}).
+\]
+Based on the results, the best merge will be selected for the current iteration.
+The merging process stops if required number of clients is served.
+
+\subsubsection{Comparison of Results}
+
+From a comparison of the two strategies presented in Figure~\ref{fig:comparison_construction_1} we can see that the quality of the solution based on the objective value is much better by merging with reordering, but it needs more time to give a solution.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/comparison_construction_1.png}
+    \caption{Construction: Comparison of average Objective Function and Run Time for 100 customers}
+    \label{fig:comparison_construction_1}
+\end{figure}
+
+The approach with reordering has the runtime:  \[
+    O(L^2) \text{ for the reordering}, \quad O(N^2 L^2) \text{ in summary}.
+\] while pure construction needs \[
+    O(L) \text{ for one merge}, \quad O(L N^2) \text{ with considering of savings}.
+\] (see Table~\ref{tab:c_str_prop})
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{l|c|c}
+        \textbf{Criterion} & \textbf{pure} & \textbf{with reordering} \\
+        \hline
+        The path quality & medium/low & high \\
+        Speed &
+        \( O(L),\; O(L N^2) \) &
+        \( O(L^2),\; O(N^2 L^2) \) \\
+        Sensitivity to order & high & low \\
+    \end{tabular}
+    \caption{Construction: Comparison of strategy properties}
+\label{tab:c_str_prop}
+\end{table}
+
+And with the help of boxplots (see Figure~\ref{fig:comparison_construction_2}), it becomes clear how the number of clients affects runtime and objective value. As the number of clients increases, the time required to build a solution with construction heuristic using reordering increases significantly.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/comparison_construction_2.png}
+    \caption{Construction: Comparison of average Objective Function and Run Time Boxplots}
+    \label{fig:comparison_construction_2}
+\end{figure}
 
 \subsection{Randomized Construction Heuristic}
 
-The only difference to the deterministic construction heuristic is that instead of one best merged vehicle in each iteration a restricted candidate list of merged vehicles is stored and one of them is chosen randomly. For this purpose, there exists another input parameter alpha, which defines how good the merged vehicles to be considered need to be at least. Its default is set to 0.3. A value of 1 would be completely random and a value of 0 would be the same as the deterministic construction.
+The only difference to the deterministic construction heuristic is that instead of one best merged vehicle in each iteration, a restricted candidate list of merged vehicles is stored and one of them is chosen randomly. For this purpose, there exists another input parameter alpha, which defines how good the merged vehicles to be considered need to be at least. Its default is set to 0.3. A value of 1 would be completely random and a value of 0 would be the same as the deterministic construction.
+
+
+\subsubsection{Comparison of Results}
+
+Obviously, when comparing pure randomized construction and randomized construction with reordering, we will get the same distinctive features of each strategy as in deterministic construction heuristic. (see Figure~\ref{fig:comparison_construction_3} and Figure~\ref{fig:comparison_construction_4})
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/comparison_construction_3.png}
+    \caption{Randomized Construction: Comparison of average Objective Function and Run Time for 100 customers}
+    \label{fig:comparison_construction_3}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/comparison_construction_4.png}
+    \caption{Randomized Construction: Comparison of average Objective Function and Run Time Boxplots}
+    \label{fig:comparison_construction_4}
+\end{figure}
+
+However, we wanted to know how the alpha parameter affects the quality of the solution. The Figure~\ref{fig:comparison_degree_rand}) does not give us much information about how the quality of the solution depends on the degree of randomization, but we can clearly see that the computation time increases slightly as alpha increases. It happens because with increasing alpha we become more candidate choices, requiring more processing time to evaluate them. In boxplot representation of results it becomes clear that the smaller alpha produces better objective values. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/comparison_degree_rand.png}
+    \caption{Randomized Construction: Impact of degree of randomization of average Objective Function and Run Time for 100 customers}
+    \label{fig:comparison_degree_rand}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/comparison_degree_rand_1.png}
+    \caption{Randomized Construction: Impact of degree of randomization of average Objective Function and Run Time Boxplots}
+    \label{fig:comparison_degree_rand_1}
+\end{figure}
 
 \subsection{Pilot Search}
 
-The pilot search uses the pure deterministic construction heuristic in order to compare the quality of each incomplete solution per iteration.
+The pilot search uses the pure pure deterministic construction heuristic in order to compare the quality of each incomplete solution per iteration.
 
-The set of incomplete solutions of an iteration is constructed as follows. The first unfulfilled customer request in the list is treated as a short path (pickup, drop-off) which is inserted into each possible position right after the first depot point or right after another drop-off point. This ensures that the load is never exceeded and aligns perfectly with the construction heuristic, which also assigns pair-wise. 
+The set of incomplete solutions of an iteration is constructed as follows. The first unfulfilled customer request in the list is treated as a short path (pickup, drop-off) which is inserted into each possible position right after the first depot point or right after another drop-off point. This ensures that the load is never exceeded and aligns perfectly with the construction heuristic, which also assigns pair-wise.
+
+The results of how much the solution improved after applying Pilot Search to pure deterministic construction heuristic can be found in Figure~\ref{fig:comparison_ps_pre_c})
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/comparison_ps_pre_c.png}
+    \caption{PS vs Pure Construction: Comparison of average Objective Function and Run Time for 100 customers}
+    \label{fig:comparison_ps_pre_c}
+\end{figure}
 
 \subsection{Local Search}
 
@@ -129,6 +400,38 @@ The neighborhood structures were initially implemented as a full set of solution
 In order to do this, we had to implement functions that compute (predict) the objective values of different neighbors without changing or duplicating the initial solution. In addition to that, we also used delta evaluation for the computation of the objective values by only updating necessary parts. We implemented this within the ObjectiveTracker object.
 This allowed us to update the objective value in constant time instead of linear time, which would be needed in order to iterate over all vehicles (so instead of $O(n_k)$ we get $O(1)$).
 
+\subsubsection{Comparison of Neighborhood Structures}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/comparison_ns_ls.png}
+    \caption{Comparison Neighborhood Structures: Comparison of average Objective Function and Run Time for 100 customers}
+    \label{fig:comparison_ns_ls}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/comparison_ns_ls_1.png}
+    \caption{Comparison Neighborhood Structures: Comparison of average Objective Function and Run Time for 100 customers Boxplots}
+    \label{fig:comparison_ns_ls_1}
+\end{figure}
+
+\subsubsection{Comparison of Step functions for Neighborhood structure dropoff relocate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/comparison_step_function_ls.png}
+    \caption{Comparison Step Functions: Comparison of average Objective Function and Run Time for 100 customers}
+    \label{fig:comparison_step_function_ls}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/comparison_step_function_ls_1.png}
+    \caption{Comparison Step Functions: Comparison of average Objective Function and Run Time for 100 customers Boxplots}
+    \label{fig:comparison_step_function_ls_1}
+\end{figure}
 
 
 \subsection{Variable Neighborhood Descent}
@@ -136,6 +439,15 @@ This allowed us to update the objective value in constant time instead of linear
 In contrast to the local search, the algorithm for the variable neighborhood descent takes a list of neighborhood structures as an input. The default list is ["\emph{pickup$\_$relocate}", "\emph{dropoff$\_$relocate}", "\emph{exchange}", "\emph{move}"].
 
 The implementation of variable neighborhood descent does not contain any problem specific modifications. Again, I refer to the neighborhood structures defined in Section~\ref{neighborhood}.
+
+\subsubsection{Comparison of Step Functions}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/comparison_step_function_vdn.png}
+    \caption{Comparison Step Functions: Comparison of average Objective Function and Run Time for 100 customers}
+    \label{fig:comparison_step_function_vdn}
+\end{figure}
 
 \subsection{Greedy Randomized Adaptive Search Procedure}
 
@@ -148,6 +460,25 @@ The greedy randomized adaptive search procedure uses the randomized construction
 
 \section{Experimental Results}
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/all_algorithms.png}
+    \caption{Comparison The Solution Quality Of All Algorithms}
+    \label{fig:all_algorithms}
+\end{figure}
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/all_algorithms_1_50.png}
+    \caption{Comparison The Solution Quality Of All Algorithms Boxplots for 50 customers}
+    \label{fig:all_algorithms_1_50}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/all_algorithms_1_100.png}
+    \caption{Comparison The Solution Quality Of All Algorithms Boxplots for 100 customers}
+    \label{fig:all_algorithms_1_100}
+\end{figure}
 
 \end{document}
