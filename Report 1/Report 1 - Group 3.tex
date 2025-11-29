@@ -472,7 +472,7 @@ When comparing the first improvement strategy with the best improvement strategy
 
 \subsection{Variable Neighborhood Descent}
 
-In contrast to the local search, the algorithm for the variable neighborhood descent takes a list of neighborhood structures as an input. The default list is ["\emph{pickup$\_$relocate}", "\emph{dropoff$\_$relocate}", "\emph{exchange}", "\emph{move}"].
+In contrast to the local search, the algorithm for the variable neighborhood descent takes a list of neighborhood structures as an input. The default list is ["\emph{pickup$\_$relocate}", "\emph{dropoff$\_$relocate}", "\emph{exchange}", "\emph{move}"]. The idea behind the choice of this sequence is the following: Pickup relocate and dropoff relocate are improving the structure inside a vehicle and are simple to compute. The exchange neighborhood also does this to some extent, but also realizes an exchange between different vehicles, which would than again be improved by the relocate neighborhoods. Since these neighborhoods alone do not improve a solution, where one vehicle contains all customer request points and other vehicle paths are empty, the move neighborhood will be the one removing this kind of imbalance.
 
 The implementation of variable neighborhood descent does not contain any problem specific modifications. Again, I refer to the neighborhood structures defined in Section~\ref{neighborhood}.
 
