@@ -105,7 +105,9 @@ where $\rho$ controls the trade-off between efficiency and fairness.
 
 \subsection{Experimental Setup}
 
-All experiments were made on a machine with a AMD Ryzen 7 9800X3D and 32 RAM, running Windows 11 and Python 3.13.9.
+The experiments of instances with 50 customers for SA algorithm with different cooling strategies we made on machine with a AMD Ryzen 5 3500U and 8 RAM, running Windows 10 and Python 3.13.9. 
+
+All other experiments were made on a machine with a AMD Ryzen 7 9800X3D and 32 RAM, running Windows 11 and Python 3.13.9.
 
 We tested every algortihm on all of the instances with size 50 and 100. For every non-deterministic algorithm we made at least three runs in order to increase the significance of the results.
 
@@ -494,6 +496,13 @@ As it was with the local search, the variable neighborhood descent also performs
 
 The greedy randomized adaptive search procedure uses the randomized construction heuristic internally and has a fixed number of iterations without improvement as the stopping criteria. For improving on the received solution from the construction this algorithm uses variable neighborhood descent with its chosen default values.
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/comparison_grasp_vnd.png}
+    \caption{GRASP vs VND: Average Objective Function and Run Time for 100 customers}
+    \label{fig:comparison_grasp_vnd}
+\end{figure}
+
 \subsection{Simulated Annealing}
 
 The algorithm includes a neighborhood search for the customer swap, probabilistic controlled acceptance of worse solutions based on temperature, and several cooling schedules.
@@ -622,6 +631,32 @@ The SA loop terminates when any of the following conditions is met:
     \item No improvement has been observed for several temperature levels (predefined for the experiments by 8).
 \end{itemize}
 
+\subsubsection{Runtime}
+
+\[
+\textbf{Outer loop iterations}=O(I), \text{where } I =  max\_iters
+\]
+
+\[
+\textbf{Equilibrium Loop}=O(n^2), \text{where } n=number of customers
+\]
+
+\[
+\textbf{Select 2 random customers}=O(1)
+\]
+
+\[
+\textbf{Best insertion cost}=O(L^2), \text{where L is path length in worst case } L\approx n
+\]
+
+\[
+\textbf{Select 2 random customers}=O(1)
+\]
+
+\[
+\textbf{Total Runtime}=O(I n^4)
+\]
+
 \subsubsection{Best Solution Tracking}
 
 Throughout the search, the algorithm maintains the best feasible solution found.
@@ -675,17 +710,71 @@ For the comparison of all algorithms we chose the best configuration for each al
     \label{fig:all_algorithms_1_100}
 \end{figure}
 
-\section{Experimental Setup}
+\subsection{Fairness and Objective by Iterations}
 
-\paragraph{Hardware for comparison of all algorithms (50, 100 customers)}
+In Figures ~\ref{fig:f_obj_c}, ~\ref{fig:f_obj_rc}, ~\ref{fig:f_obj_ps}, ~\ref{fig:f_obj_ls}, ~\ref{fig:f_obj_vnd}, ~\ref{fig:f_obj_grasp}, ~\ref{fig:f_obj_sa}  the changes in fairness and objective values for instance 48 from the training set are displayed.
 
-\paragraph{Hardware for comparison of different cooling structures for SA (50 customers) }
+\subsubsection{Deterministic Construction Heuristic}
 
-\begin{itemize}
-    \item \textbf{Processor:} AMD Ryzen 5 3500U with Radeon Vega Mobile Graphics (8 cores), approximately 2.1 GHz
-    \item \textbf{Memory:} 8 GB RAM
-    \item \textbf{Operating System:} Windows 10 Pro 64-bit (Build 19045)
-    \item \textbf{DirectX Version:} DirectX 12
-\end{itemize}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/f_obj_c.png}
+    \caption{Deterministic Construction Heuristic: Fairness and Objective by Iterations}
+    \label{fig:f_obj_c}
+\end{figure}
+
+\subsubsection{Randomized Construction Heuristic}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/f_obj_rc.png}
+    \caption{Randomized Construction Heuristic: Fairness and Objective by Iterations}
+    \label{fig:f_obj_rc}
+\end{figure}
+
+\subsubsection{Pilot Search}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/f_obj_ps.png}
+    \caption{Pilot Search: Fairness and Objective by Iterations}
+    \label{fig:f_obj_ps}
+\end{figure}
+
+\subsubsection{Local Search}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/f_obj_ls.png}
+    \caption{Local Search: Fairness and Objective by Iterations}
+    \label{fig:f_obj_ls}
+\end{figure}
+
+\subsection{Variable Neighborhood Descent}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/f_obj_vnd.png}
+    \caption{VND: Fairness and Objective by Iterations}
+    \label{fig:f_obj_vnd}
+\end{figure}
+
+\subsection{Greedy Randomized Adaptive Search Procedure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/f_obj_grasp.png}
+    \caption{GRASP: Fairness and Objective by Iterations}
+    \label{fig:f_obj_grasp}
+\end{figure}
+
+\subsection{Simulated Annealing}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/f_obj_sa.png}
+    \caption{Simulated Annealing: Fairness and Objective by Iterations}
+    \label{fig:f_obj_sa}
+\end{figure}
 
 \end{document}
