@@ -338,35 +338,36 @@ However, we wanted to know how the alpha parameter affects the quality of the so
 \end{figure}
 
 \subsection{Pilot Search}
+\label{sec: ps}
 
 The pilot search uses the pure deterministic construction heuristic in order to compare the quality of each incomplete solution per iteration.
 
 The set of incomplete solutions of an iteration is constructed as follows. The first unfulfilled customer request in the list is treated as a short path (pickup, drop-off) which is inserted into each possible position right after the first depot point or right after another drop-off point. This ensures that the load is never exceeded and aligns perfectly with the construction heuristic, which also assigns pair-wise.
 
-The pilot search performs at most $n$ iterations.  
-In each iteration, the candidate set contains
+The pilot search performs at most $n$ iterations.
+Let $L$ denote the maximum length of all vehicle paths, then in each iteration, the candidate set contains
 \[
-|C| = O(n_K \cdot n)
+|C| = O(n_K \cdot L)
 \]
-because every unserved request can be inserted into each of the $n_K$ vehicles at $O(n)$ admissible positions.
+because every unserved request can be inserted into each of the $n_K$ vehicles at $O(L)$ admissible positions. This is also the running time for constructing the candidate set.
 
-For every candidate $c \in C$, we either run the construction heuristic or reuse a cached result.  
-The construction heuristic runs in $O(n_K n^{2})$ time.
+For every candidate $c \in C$, we either run the construction heuristic or reuse a cached result.
+The construction heuristic runs in $O(n^{2} L)$ time.
 
 Hence one iteration costs
 \[
-O(|C| \cdot n_K n^{2}) 
-= O(n_K n \cdot n_K n^{2})
-= O(n_K^2 \cdot n^{3}).
+O(|C| \cdot L n^{2})
+= O(n_K L \cdot L n^{2})
+= O(n_K \cdot L^2n^{2}).
 \]
 
 Over $n$ iterations the total runtime is
 \[
-O(n_K^2 \cdot n^{4}).
+O(n_K \cdot L^2 n^{3}).
 \]
 
 
-The results of how much the solution improved after applying Pilot Search to pure deterministic construction heuristic can be found in Figure~\ref{fig:comparison_ps_pre_c}.
+The results of how much the solution improved after applying Pilot Search to pure deterministic construction heuristic can be found in Figure~\ref{fig:comparison_ps_pre_c}. The running time of this concrete implementation of pilot search is very impractical already for instances of size larger than 100. Therefore, one could improve the performance by limiting the depth of the greedy construction for every candidate and by using a cheaper construction algorithm.
 
 \begin{figure}[H]
     \centering
@@ -387,54 +388,66 @@ We implemented five different neighborhood structures, which are described in th
 
 \label{neighborhood}
 
-\paragraph{Exchange}
+\paragraph{Exchange.}
 
-The exchange neighborhood was the first structure we implemented. As the name suggests, the current occurrences of pickup and drop-off points of two different customers are simply swapped. 
+The exchange neighborhood was the first structure we implemented. As the name suggests, the current occurrences of pickup and drop-off points of two different customers are simply swapped.
 
 \bigskip
 
 There are three different cases that need to be considered:
 
-\medskip
+\begin{enumerate}
+\item If both customer requests are currently fulfilled by one vehicle, then the exchange happens only inside one vehicle.
+\item One customer request is fulfilled by one and the other by another vehicle. In this case the exchange is happening between two different vehicles.
+\item If a customer request is fulfilled by one vehicle and the other one is not yet fulfilled, then the unfulfilled request is served instead of the other one and takes the position of the initially assigned request, which is therefore now unfulfilled.
+\end{enumerate}
 
-If both customer requests are currently fulfilled by one vehicle, then the exchange happens only inside one vehicle.
-
-\medskip
-
-Another possible case is that one customer request is fulfilled by one and the other by another vehicle. In this case the exchange is happening between two different vehicles.
-
-\medskip
-
-In the third case one customer request is fulfilled by one vehicle and the other one is not yet fulfilled.
 
 \bigskip
 
 Independent of the case, the pickup point of the one customer is replaced by the pickup point of the other customer inside a vehicle path. The same holds for the corresponding drop-off points. The whole neighborhood consists of every possible swap and is therefore bounded in size by $O(\frac{n(n-1)}{2})$.
 
-\paragraph{Pickup Relocate}
+\paragraph{Pickup Relocate.}
 
-The pickup relocate neighborhood is even simpler than that. Here, a pickup point is relocated into every possible valid position of the same vehicle path. Relocations are only possible after the first depot point up until the corresponding drop-off point. With n customer requests in the worst case this yields approximately \textbf{n} $*$ \textbf{number of points in the corresponding vehicle path} different possibilities.
+The pickup relocate neighborhood is even simpler than that. Here, a pickup point is relocated into every possible valid position of the same vehicle path. Relocations are only possible after the first depot point up until the corresponding drop-off point. With n customer requests in the worst case (if every customer request is served by one vehicle) this yields $O(nL)$ different possibilities. In practice the size can however be much smaller, depending on the distribution.
 
-\paragraph{Dropoff Relocate}
+
+\paragraph{Dropoff Relocate.}
 
 This neighborhood is technically the same as the pickup relocate, only that instead of pickup points, drop-off points are relocated.
 
-\paragraph{Remove and Append}
+\paragraph{Remove and Append.}
 
-This neighborhood was a simple try to realize a move of customer requests to other vehicles. A pickup and drop-off point is removed from one vehicle path and appended to another vehicle path (right before the second depot point). The size of this neighborhood is at most n $*$ ($n_K$ - 1)
+This neighborhood was a simple try to realize a move of customer requests to other vehicles. A pickup and drop-off point is removed from one vehicle path and appended to another vehicle path (right before the second depot point). The size of this neighborhood is in $O(n \cdot (n_K - 1))$
 
-\paragraph{Move}
+\paragraph{Move.}
 
-The move neighborhood is an improvement for the remove and append neighborhood, at cost of performance. Instead of simply appending both points to a path, all different possibilities to insert a pickup point and drop-off point into the path are considered. (a drop-off is not forced to be directly after the pickup point). This increases the size of the neighborhood to $n^3$ $*$ ($n_k$ - 1) (This is a loose upper bound)
+The move neighborhood is an improvement for the remove and append neighborhood, at cost of performance. Instead of simply appending both points to a path, all different possibilities to insert a pickup point and drop-off point into the path are considered. (a drop-off is not forced to be directly after the pickup point). This increases the size of the neighborhood to $O(n \cdot L^2 \cdot (n_k - 1))$ (This is a loose upper bound)
 
 \paragraph{Notes on Efficiency:}
 
-The neighborhood structures were initially implemented as a full set of solutions, which means that for the best-improvement strategy we had to iterate over the whole set. Since this means that we would have to iterate two times over the set (since creating the set is also one full iteration), we decided to not return a set of all valid neighbors, but instead to choose only one neighbor depending on the strategy. This not only reduced the number of iterations by 1, but this also made the computation actually feasible, since in the initial idea for every neighbor a copy of the solution was created, which does not scale very well. Now, there is only one necessary deep copy for the neighbor we want to choose.
+The neighborhood structures were initially implemented by explicitly generating the full set of neighboring solutions. For a best-improvement strategy this approach requires two full iterations over the neighborhood: one to construct all neighbors and another to select the best one. In addition, a deep copy of the full solution would have been required for every single neighbor, causing substantial memory consumption and poor scalability.
 
-\medskip
+\bigskip
 
-In order to do this, we had to implement functions that compute (predict) the objective values of different neighbors without changing or duplicating the initial solution. In addition to that, we also used delta evaluation for the computation of the objective values by only updating necessary parts. We implemented this within the ObjectiveTracker object.
-This allowed us to update the objective value in constant time instead of linear time, which would be needed in order to iterate over all vehicles (so instead of $O(n_K)$ we get $O(1)$).
+To avoid these issues, we instead evaluate candidate moves \emph{without} constructing the corresponding full solution. This is achieved by prediction functions that compute the objective value of a candidate in-place, i.e., without modifying or duplicating the current solution. Only the finally selected neighbor (depending on the improvement strategy) requires an actual deep copy. This reduces the number of required deep copies from $O(N)$ to~$1$, where $N$ denotes the size of the neighborhood.
+
+\bigskip
+
+Furthermore, we use a delta-evaluation scheme to update the objective value. Rather than recomputing the full objective, which would require iterating over all $n_K$ vehicles and thus cost $O(n_K)$ time, the \texttt{ObjectiveTracker} updates only the parts affected by the move. This yields constant-time updates, i.e., $O(1)$ per evaluation.
+
+\bigskip
+
+Importantly, the prediction functions that evaluate candidate moves must still inspect the relevant vehicle path in order to compute distance changes and check feasibility. These operations require linear time in the path length $L$, and thus every candidate move can be evaluated in $O(L)$ time.
+
+\bigskip
+
+Let $N$ denote the size of the neighborhood, i.e., the number of candidate moves. Since each candidate requires $O(L)$ time to evaluate, both the best-improvement strategy and the worst-case execution of the first-improvement strategy have the same asymptotic runtime:
+\[
+T = O(NL).
+\]
+Only a single deep copy is performed after selecting a neighbor, which does not affect the overall asymptotic bound.
+
 
 \subsubsection{Comparison of Neighborhood Structures}
 
@@ -479,7 +492,15 @@ When comparing the first improvement strategy with the best improvement strategy
 
 In contrast to the local search, the algorithm for the variable neighborhood descent takes a list of neighborhood structures as an input. The default list is ["\emph{pickup$\_$relocate}", "\emph{dropoff$\_$relocate}", "\emph{exchange}", "\emph{move}"]. The idea behind the choice of this sequence is the following: Pickup relocate and dropoff relocate are improving the structure inside a vehicle and are simple to compute. The exchange neighborhood also does this to some extent, but also realizes an exchange between different vehicles, which would than again be improved by the relocate neighborhoods. Since these neighborhoods alone do not improve a solution, where one vehicle contains all customer request points and other vehicle paths are empty, the move neighborhood will be the one removing this kind of imbalance.
 
+\bigskip
+
 The implementation of variable neighborhood descent does not contain any problem specific modifications. Again, I refer to the neighborhood structures defined in Section~\ref{neighborhood}.
+
+The complexity of one iteration of this algorithm is bounded by the addition of the runtimes of the subroutines selecting neighbors from these neighborhoods. Therefore, we get:
+
+\[
+T = O( 2nL^{2} + n^{2}L + n(n_{K}-1)L^{3}).
+\]
 
 \subsubsection{Comparison of Step Functions}
 
@@ -494,7 +515,12 @@ As it was with the local search, the variable neighborhood descent also performs
 
 \subsection{Greedy Randomized Adaptive Search Procedure}
 
-The greedy randomized adaptive search procedure uses the randomized construction heuristic internally and has a fixed number of iterations without improvement as the stopping criteria. For improving on the received solution from the construction this algorithm uses variable neighborhood descent with its chosen default values.
+The greedy randomized adaptive search procedure uses the randomized construction heuristic internally and has a fixed number of iterations without improvement as the stopping criteria, which we set to 3 by default. For improving on the received solution from the construction this algorithm uses variable neighborhood descent with its chosen default neighborhood and the best improvement strategy.
+
+\bigskip
+
+Figure~\ref{fig:comparison_grasp_vnd} shows that the greedy randomized adaptive search procedure leads to better results than just using variable neighborhood descent once. The increase in quality, however, results in a decrease in efficiency.
+
 
 \begin{figure}[H]
     \centering
@@ -685,7 +711,21 @@ All three cooling strategies produce comparable solution quality, no strategy ou
 
 \section{Experimental Results}
 
-For the comparison of all algorithms we chose the best configuration for each algorithm. As presented in the previous chapters, these are: construction und randomized construction with reordering, the first improvement strategy for local search and variable neighborhood descent and the dropoff relocate neighborhood for local search.
+For the comparison of all algorithms, we selected the best-performing configuration for each method. Specifically, we evaluated the following parameter settings: construction with reordering; randomized construction with reordering and $\alpha = 0.3$; the first-improvement strategy for both local search and variable neighborhood descent (VND); the dropoff--relocate neighborhood for local search; and the adaptive cooling strategy for simulated annealing. Pilot search and GRASP were tested using their default configurations as presented in the corresponding chapters.
+
+\bigskip
+
+Figure~\ref{fig:all_algorithms} shows that pilot search clearly yields the solutions of lowest quality. This is expected, as it was designed to operate on top of the pure construction heuristic. As discussed in Section~\ref{sec: ps}, pilot search outperforms the pure construction variants, but it cannot compete with the construction heuristics that incorporate the reordering strategy. Figures~\ref{fig:all_algorithms_1_50} and \ref{fig:all_algorithms_1_100} further illustrate that, despite its weaker solution quality, its runtime is also comparatively worse than that of most other algorithms.
+
+\bigskip
+
+The two construction heuristics perform nearly identically and serve as the basis for all subsequent algorithms. The best local search configuration consistently improves the objective value of the initial solution provided by the construction heuristic while remaining highly efficient. Simulated annealing ranks next: although it requires significantly more time to terminate with the default stopping conditions, it scales far better to larger instances than pilot search and VND.
+
+\bigskip
+
+Regarding VND, it generally achieves better results than the previously discussed algorithms. However, its runtime tends to grow faster than that of most competitors. In these experiments, GRASP was mostly outperformed by VND. It should be noted, though, that GRASP employed a VND configuration with the best-improvement strategy, whereas the VND used for comparison here relied on first improvement. Due to time constraints, we were unable to test GRASP with first improvement as well. Nevertheless, Figure~\ref{fig:comparison_grasp_vnd} suggests that GRASP would likely outperform VND if combined with the first-improvement strategy.
+
+
 
 
 
@@ -714,7 +754,12 @@ For the comparison of all algorithms we chose the best configuration for each al
 
 In Figures ~\ref{fig:f_obj_c}, ~\ref{fig:f_obj_rc}, ~\ref{fig:f_obj_ps}, ~\ref{fig:f_obj_ls}, ~\ref{fig:f_obj_vnd}, ~\ref{fig:f_obj_grasp}, ~\ref{fig:f_obj_sa}  the changes in fairness and objective values for instance 48 from the training set are displayed.
 
-\subsubsection{Deterministic Construction Heuristic}
+\subsubsection{Deterministic and Randomized Construction Heuristic}
+
+Since both heuristics construct a solution from scratch, Figures~\ref{fig:f_obj_c} and \ref{fig:f_obj_rc} show that the objective value increases over time. The number of iterations is bounded by the number of customer requests that need to be fulfilled. For the fairness value, no clear pattern can be identified.
+
+
+
 
 \begin{figure}[H]
     \centering
@@ -723,7 +768,6 @@ In Figures ~\ref{fig:f_obj_c}, ~\ref{fig:f_obj_rc}, ~\ref{fig:f_obj_ps}, ~\ref{f
     \label{fig:f_obj_c}
 \end{figure}
 
-\subsubsection{Randomized Construction Heuristic}
 
 \begin{figure}[H]
     \centering
@@ -734,6 +778,11 @@ In Figures ~\ref{fig:f_obj_c}, ~\ref{fig:f_obj_rc}, ~\ref{fig:f_obj_ps}, ~\ref{f
 
 \subsubsection{Pilot Search}
 
+For pilot search, the best objective value among all solutions returned so far by the deterministic construction heuristic is stored in each iteration. Therefore, it is not surprising that Figure~\ref{fig:f_obj_ps} shows an overall decreasing trend in the objective value. We can also observe that the fairness value tends to increase over time.
+
+
+
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{graphics/f_obj_ps.png}
@@ -743,6 +792,9 @@ In Figures ~\ref{fig:f_obj_c}, ~\ref{fig:f_obj_rc}, ~\ref{fig:f_obj_ps}, ~\ref{f
 
 \subsubsection{Local Search}
 
+Figure~\ref{fig:f_obj_ls} illustrates that local search runs until the objective value can no longer be improved within the current neighborhood. In general, the fairness values tend to increase slightly over time. The only exception is the move neighborhood with the first-improvement strategy, where the fairness value decreases significantly.
+
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{graphics/f_obj_ls.png}
@@ -751,6 +803,8 @@ In Figures ~\ref{fig:f_obj_c}, ~\ref{fig:f_obj_rc}, ~\ref{fig:f_obj_ps}, ~\ref{f
 \end{figure}
 
 \subsection{Variable Neighborhood Descent}
+VND exhibits a similar pattern in the evolution of the objective value over time, as shown in Figure~\ref{fig:f_obj_vnd}. However, the fairness value appears to increase initially and then decrease again in the final iterations, at least for this instance.
+
 
 \begin{figure}[H]
     \centering
@@ -761,6 +815,8 @@ In Figures ~\ref{fig:f_obj_c}, ~\ref{fig:f_obj_rc}, ~\ref{fig:f_obj_ps}, ~\ref{f
 
 \subsection{Greedy Randomized Adaptive Search Procedure}
 
+Since GRASP uses VND internally, it is not surprising that the graphs in Figure~\ref{fig:f_obj_vnd} and Figure~\ref{fig:f_obj_grasp} exhibit similar patterns. The only difference is that, for some iterations, GRASP can maintain the same objective value.
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{graphics/f_obj_grasp.png}
@@ -769,6 +825,8 @@ In Figures ~\ref{fig:f_obj_c}, ~\ref{fig:f_obj_rc}, ~\ref{fig:f_obj_ps}, ~\ref{f
 \end{figure}
 
 \subsection{Simulated Annealing}
+Last but not least, Figure~\ref{fig:f_obj_sa} illustrates the typical variance of simulated annealing. At the beginning of the execution, significantly worse solutions are occasionally accepted, but over time the variance decreases.
+
 
 \begin{figure}[H]
     \centering
