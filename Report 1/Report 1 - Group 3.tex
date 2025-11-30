@@ -259,15 +259,18 @@ From a comparison of the two strategies presented in Figure~\ref{fig:comparison_
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{graphics/comparison_construction_1.png}
-    \caption{Construction: Comparison of average Objective Function and Run Time for 100 customers}
+    \caption{Construction: Average Objective Function and Run Time for 100 customers}
     \label{fig:comparison_construction_1}
 \end{figure}
 
-The approach with reordering has the runtime:  \[
-    O(L^2) \text{ for the reordering}, \quad O(N^2 L^2) \text{ in summary}.
-\] while pure construction needs \[
-    O(L) \text{ for one merge}, \quad O(L N^2) \text{ with considering of savings}.
-\] (see Table~\ref{tab:c_str_prop})
+\textbf{Runtime.}
+
+Let $n$ be the number of customers. To fulfill the required number of customers, the algorithm needs in the worst case $n$ merges. Then we must compare objective values after merging of all best pairs selected from $3$ $*$ $n$ based on saving. The runtime of the objective value checking is $O(n^2)$
+\\[1em]
+The approach with reordering needs $O(L^2)$ for one merge,where L is the maximum length of vehicle path to be merged.
+\\[1em]
+while pure construction needs for one merge $O(L)$
+(see Table~\ref{tab:c_str_prop})
 
 \begin{table}[H]
     \centering
@@ -276,8 +279,8 @@ The approach with reordering has the runtime:  \[
         \hline
         The path quality & medium/low & high \\
         Speed &
-        \( O(L),\; O(L N^2) \) &
-        \( O(L^2),\; O(N^2 L^2) \) \\
+        \( O(n^2L) \) &
+        \( O(n^2 L^2) \) \\
         Sensitivity to order & high & low \\
     \end{tabular}
     \caption{Construction: Comparison of strategy properties}
@@ -289,7 +292,7 @@ And with the help of boxplots (see Figure~\ref{fig:comparison_construction_2}), 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{graphics/comparison_construction_2.png}
-    \caption{Construction: Comparison of average Objective Function and Run Time Boxplots}
+    \caption{Construction: Average Objective Function and Run Time Boxplots}
     \label{fig:comparison_construction_2}
 \end{figure}
 
@@ -305,14 +308,14 @@ Obviously, when comparing pure randomized construction and randomized constructi
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{graphics/comparison_construction_3.png}
-    \caption{Randomized Construction: Comparison of average Objective Function and Run Time for 100 customers}
+    \caption{Randomized Construction: Average Objective Function and Run Time for 100 customers}
     \label{fig:comparison_construction_3}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{graphics/comparison_construction_4.png}
-    \caption{Randomized Construction: Comparison of average Objective Function and Run Time Boxplots}
+    \caption{Randomized Construction: Average Objective Function and Run Time Boxplots}
     \label{fig:comparison_construction_4}
 \end{figure}
 
@@ -366,7 +369,7 @@ The results of how much the solution improved after applying Pilot Search to pur
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{graphics/comparison_ps_pre_c.png}
-    \caption{PS vs Pure Construction: Comparison of average Objective Function and Run Time for 100 customers}
+    \caption{PS vs Pure Construction: Average Objective Function and Run Time for 100 customers}
     \label{fig:comparison_ps_pre_c}
 \end{figure}
 
@@ -438,14 +441,14 @@ Figure~\ref{fig:comparison_ns_ls} and Figure~\ref{fig:comparison_ns_ls_1} show t
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{graphics/comparison_ns_ls.png}
-    \caption{Comparison Neighborhood Structures: Comparison of average Objective Function and Run Time for 100 customers}
+    \caption{Comparison Neighborhood Structures: Average Objective Function and Run Time for 100 customers}
     \label{fig:comparison_ns_ls}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{graphics/comparison_ns_ls_1.png}
-    \caption{Comparison Neighborhood Structures: Comparison of average Objective Function and Run Time for 100 customers Boxplots}
+    \caption{Comparison Neighborhood Structures: Average Objective Function and Run Time for 100 customers Boxplots}
     \label{fig:comparison_ns_ls_1}
 \end{figure}
 
@@ -458,14 +461,14 @@ When comparing the first improvement strategy with the best improvement strategy
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{graphics/comparison_step_function_ls.png}
-    \caption{Comparison Step Functions: Comparison of average Objective Function and Run Time for 100 customers}
+    \caption{Comparison Step Functions: Average Objective Function and Run Time for 100 customers}
     \label{fig:comparison_step_function_ls}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{graphics/comparison_step_function_ls_1.png}
-    \caption{Comparison Step Functions: Comparison of average Objective Function and Run Time for 100 customers Boxplots}
+    \caption{Comparison Step Functions: Average Objective Function and Run Time for 100 customers Boxplots}
     \label{fig:comparison_step_function_ls_1}
 \end{figure}
 
@@ -483,7 +486,7 @@ As it was with the local search, the variable neighborhood descent also performs
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{graphics/comparison_step_function_vdn.png}
-    \caption{Comparison Step Functions: Comparison of average Objective Function and Run Time for 100 customers}
+    \caption{Comparison Step Functions: Average Objective Function and Run Time for 100 customers}
     \label{fig:comparison_step_function_vdn}
 \end{figure}
 
@@ -492,6 +495,155 @@ As it was with the local search, the variable neighborhood descent also performs
 The greedy randomized adaptive search procedure uses the randomized construction heuristic internally and has a fixed number of iterations without improvement as the stopping criteria. For improving on the received solution from the construction this algorithm uses variable neighborhood descent with its chosen default values.
 
 \subsection{Simulated Annealing}
+
+The algorithm includes a neighborhood search for the customer swap, probabilistic controlled acceptance of worse solutions based on temperature, and several cooling schedules.
+
+\subsubsection{Choosing $T_0$ Based on a Target Initial Acceptance Rate}
+
+In the implementation, the initial acceptance probability is set to
+\[
+    P_0 = 0.03,
+\]
+which means that at the beginning of the search approximately \(3\%\) of worse moves
+should be accepted.
+
+We know that in Simulated Annealing, the acceptance probability for a move of cost 
+$\Delta$ is
+\[
+    P(\Delta) = \exp\!\left(-\frac{\Delta}{T}\right).
+\]
+
+Setting $P(\overline{\Delta}) = P_0$ and solving for $T$ yields
+
+\[
+    T_0 = -\frac{\overline{\Delta}}{\ln(P_0)}.
+\]
+
+Thus, the initial temperature is chosen so that a typical move increase in
+$\overline{\Delta}$ has an exact acceptance probability $P_0$. $\overline{\Delta}$ is the average ${\Delta}$ of $50$ moves.
+
+\subsubsection{Neighborhood Search: Customer Swap}
+
+The neighborhood search is based on swapping two customers between two
+different vehicles or some customer which is not assigned to a vehicle with another customer that has been already assigned. 
+
+The procedure consists of:
+
+\begin{enumerate}
+    \item Randomly selecting two distinct vehicles or None (representing the case that we will randomly select not assigned customer).
+    \item Randomly selecting one assigned customer from each vehicle or not assigned one if from previous step we got None.
+    \item Removing the pickup and dropoff nodes of both customers from current vehicles.
+    \item Re-inserting each customer into the other's route using a best
+          insertion heuristic:
+        \begin{itemize}
+            \item All feasible insertion positions for the pickup node are evaluated.
+            \item For each pickup position, all feasible dropoff positions are evaluated, respecting vehicle capacity and ordering constraints.
+            \item The insertion minimizes the additional distance is kept.
+        \end{itemize}
+\end{enumerate}
+
+\subsubsection{Acceptance Rule}
+
+The Simulated Annealing Algorithm allows us to escape a local minima by accepting worse solutions with a controlled probability.  
+At each iteration, ${\Delta}$ is calculated
+
+\[
+    \Delta = f(x') - f(x).
+\]
+
+The acceptance rule is:
+
+\[
+    P(\text{accept}) =
+    \begin{cases}
+        1,               & \text{if } \Delta < 0, \\
+        \exp(-\Delta/T), & \text{otherwise},
+    \end{cases}
+\]
+
+where $T$ is the temperature.
+
+\subsubsection{Equilibrium Condition}
+
+For each temperature level, we decided to evaluate the objective values by exploring 
+\[
+    \text{equilibrium} = \frac{n(n-1)}{8},
+\]
+neighbors.
+
+\subsubsection{Cooling Schedules}
+
+The algorithm supports several cooling rules, chosen by the user:
+
+\begin{itemize}
+    \item \textbf{Geometric cooling:}
+    \[
+        T_{k+1} = \alpha T_k, \quad \alpha = 0.95.
+    \]
+
+    \item \textbf{Linear cooling:}
+    \[
+        T_{k+1} = T_k - 0.15.
+    \]
+
+    \item \textbf{Power-law cooling:}
+    \[
+        T_k = \frac{T_0}{(k+1)^p}.
+    \]
+
+    \item \textbf{Adaptive cooling:}
+
+    \[
+    T_{k+1} =
+    \begin{cases}
+    \alpha T_k, & \text{if improve\_rate} > 0.30 \quad \text{(slow cooling when improving)} \\[6pt]
+    \gamma T_k, & \text{if worsen\_rate} > 0.30 \quad \text{(fast cooling when unstable)} \\[6pt]
+    \beta T_k, & \text{if stuck\_counter} > 5 \quad \text{(reheating when stuck)} \\[6pt]
+    0.97\, T_k, & \text{otherwise (default moderate cooling)} 
+    \end{cases}
+    \]
+    
+    where
+    
+    \[
+    \alpha = 0.95, \qquad
+    \beta = 1.05, \qquad
+    \gamma = 0.85.
+    \]
+\end{itemize}
+
+\subsubsection{Termination Criteria}
+
+The SA loop terminates when any of the following conditions is met:
+
+\begin{itemize}
+    \item The temperature $T$ falls below zero.
+    \item A maximum number of iterations is reached (predefined for the experiments by 1000).
+    \item No improvement has been observed for several temperature levels (predefined for the experiments by 8).
+\end{itemize}
+
+\subsubsection{Best Solution Tracking}
+
+Throughout the search, the algorithm maintains the best feasible solution found.
+Although worse solutions may be temporarily accepted, only improving solutions update the best global solution.
+
+\subsubsection{Comparison of Cooling Strategies}
+
+All three cooling strategies produce comparable solution quality, no strategy outperforms another (see Figure~\ref{fig:comparison_sa}). Geometric cooling tends to give slightly lower median objective values (see Figure~\ref{fig:comparison_sa_1}). The runtime first of all depends not on cooling strategies, but in pairs on customers that are selected for swapping.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/comparison_sa.png}
+    \caption{Comparison Cooling Strategies: Average Objective Function and Run Time for 50 customers}
+    \label{fig:comparison_sa}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/comparison_sa_1.png}
+    \caption{Comparison Cooling Strategies: Average Objective Function and Run Time for 50 customers Boxplots}
+    \label{fig:comparison_sa_1}
+\end{figure}
 
 \pagebreak
 
@@ -522,5 +674,18 @@ For the comparison of all algorithms we chose the best configuration for each al
     \caption{Comparison The Solution Quality Of All Algorithms Boxplots for 100 customers}
     \label{fig:all_algorithms_1_100}
 \end{figure}
+
+\section{Experimental Setup}
+
+\paragraph{Hardware for comparison of all algorithms (50, 100 customers)}
+
+\paragraph{Hardware for comparison of different cooling structures for SA (50 customers) }
+
+\begin{itemize}
+    \item \textbf{Processor:} AMD Ryzen 5 3500U with Radeon Vega Mobile Graphics (8 cores), approximately 2.1 GHz
+    \item \textbf{Memory:} 8 GB RAM
+    \item \textbf{Operating System:} Windows 10 Pro 64-bit (Build 19045)
+    \item \textbf{DirectX Version:} DirectX 12
+\end{itemize}
 
 \end{document}

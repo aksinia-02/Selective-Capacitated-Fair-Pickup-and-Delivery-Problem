@@ -6,7 +6,7 @@ from solve_SCF_PDP import process_for_statistic
 
 # python -m venv venv
 # .\venv\Scripts\Activate
-
+# pip install -r .\requirements.txt
 
 def load_or_create_dataframe(filename, path):
     columns = ["number", "nreq", "nveh", "to_fulfilled", "rho", "avg_time", "avg_obj_func", "iterations"]

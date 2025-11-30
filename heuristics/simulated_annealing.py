@@ -161,7 +161,46 @@ def compute_initial_temperature(x, customers, n, rho=1, P0=0.03):
     T_init = -delta_avg / math.log(P0)
     return T_init
 
-def simulated_annealing(x0, customers, n, rho, statistic, alpha=0.95, no_improvement_level=8, max_iters=1000, output_statistic=False):
+def geometric_cooling(T, k):
+    return T * 0.95
+
+def linear_cooling(T, k):
+    return T - 0.15
+
+def logarithmic_cooling(T0, k):
+    return T0 / math.log(k + 1)
+
+def power_law_cooling(T0, k):
+    return T0 / (k + 1)**0.01
+
+def adaptive_cooling(T, k, improve_rate, worsen_rate, stuck_counter,
+                     alpha=0.95, beta=1.05, fast_cool=0.85):
+
+    # too many improvements - slow cooling
+    if improve_rate > 0.30:
+        return T * alpha
+
+    # too many worse moves accepted - aggressive cooling
+    if worsen_rate > 0.30:
+        return T * fast_cool
+
+    # the same solution for long - reheat slightly
+    if stuck_counter > 5:
+        return T * beta
+
+    # default moderate cooling
+    return T * 0.97
+
+
+def simulated_annealing(x0, customers, n, rho, statistic, cooling_type="geometric", no_improvement_level=8, max_iters=1000, output_statistic=False):
+
+    switcher = {
+        "geometric": geometric_cooling,
+        "linear": linear_cooling,
+        "logarithmic": logarithmic_cooling,
+        "power_law": power_law_cooling,
+        "adaptive": adaptive_cooling
+    }
 
     x = x0
     tracker = ObjectiveTracker(x, rho)
@@ -181,8 +220,10 @@ def simulated_annealing(x0, customers, n, rho, statistic, alpha=0.95, no_improve
     best_cost = float("inf")
     best_solution = None
 
-    while iters_no_improvement < no_improvement_level and iters < max_iters:
+    while iters_no_improvement < no_improvement_level and T > 0 and iters < max_iters:
         flag_improvement = False
+        accepted_better = 0
+        accepted_worse = 0
 
         for _ in range(equilibrium):
 
@@ -203,6 +244,7 @@ def simulated_annealing(x0, customers, n, rho, statistic, alpha=0.95, no_improve
                 vehicle_dict[veh2].remove(cust2.pickup.index)
                 vehicle_dict[veh2].extend([cust1.pickup.index])
                 flag_improvement = True
+                accepted_better += 1
                 if f_new < best_cost:
                     best_cost = f_new
                     best_solution = copy.deepcopy(x)
@@ -221,6 +263,7 @@ def simulated_annealing(x0, customers, n, rho, statistic, alpha=0.95, no_improve
 
                     vehicle_dict[veh2].remove(cust2.pickup.index)
                     vehicle_dict[veh2].extend([cust1.pickup.index])
+                    accepted_worse += 1
                     if f_new < best_cost:
                         best_cost = f_new
                         best_solution = copy.deepcopy(x)
@@ -234,14 +277,29 @@ def simulated_annealing(x0, customers, n, rho, statistic, alpha=0.95, no_improve
         else:
             iters_no_improvement = 0
 
-        T = T * alpha
+        total_moves = accepted_better + accepted_worse
+        if total_moves > 0:
+            improve_rate = accepted_better / total_moves
+            worsen_rate = accepted_worse / total_moves
+        else:
+            improve_rate = 0
+            worsen_rate = 0
+
+        cooling_fn = switcher.get(cooling_type)
+        if cooling_fn is None:
+            raise ValueError(f"Unknown cooling type: {cooling_type}")
+        if cooling_type == "adaptive":
+            T = cooling_fn(T, iters, improve_rate, worsen_rate, iters_no_improvement)
+        else:
+            T = cooling_fn(T, iters)
+
         print(f"T cooled to {T:.4f}, objective value = {f_x:.2f}")
 
     print(f"Finished SA: iterations={iters}, final T={T:.5f}, objective value={best_cost:.3f}")
     if output_statistic:
         return best_solution, statistic
     else:
-        return best_solution
+        return best_solution, None
     
 
 def solve(customers, vehicles, to_fulfilled, rho, output_statistic=False):
@@ -251,8 +309,8 @@ def solve(customers, vehicles, to_fulfilled, rho, output_statistic=False):
     x = copy.deepcopy(vehicles)
 
     if not is_solution_valid(vehicles, to_fulfilled):
-        x = construction.solve(customers, vehicles, to_fulfilled, rho)
-        x = reorder_paths(x, len(customers))
+        x = construction.solve(customers, vehicles, to_fulfilled, rho, "with_reordering")
+        #x = reorder_paths(x, len(customers))
 
     statistic = Statistic(x, rho)
 
@@ -271,4 +329,4 @@ def solve(customers, vehicles, to_fulfilled, rho, output_statistic=False):
     objectiveTracker = ObjectiveTracker(x, rho)
 
     print("Running simulated annealing")
-    return simulated_annealing(x, customers, len(customers), rho, statistic, 0.95, 8, 10000, output_statistic)
+    return simulated_annealing(x, customers, len(customers), rho, statistic, "adaptive", 6, 10000, output_statistic)
