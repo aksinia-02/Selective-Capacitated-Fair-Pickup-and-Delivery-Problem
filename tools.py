@@ -14,6 +14,35 @@ def objective_function(vehicles, rho):
 
     return objective
 
+def max_min_fairness(vehicles):
+
+    lengths = [v.path_length for v in vehicles]
+
+    min_length = min(lengths)
+    max_length = max(lengths)
+
+    if max_length == 0:
+        return 0
+    
+    return min_length / max_length
+
+def gini_coefficient(vehicles):
+
+    lengths = [v.path_length for v in vehicles]
+    n = len(lengths)
+
+    total_length = sum(lengths)
+
+    if total_length == 0:
+        return 1
+    
+    diff_sum = 0
+    for i in range(n):
+        for j in range(n):
+            diff_sum += abs(lengths[i] - lengths[j])
+
+    return 1 - diff_sum / (2 * n * total_length)
+
 def objective_function_detailed(vehicles, rho):
     """
     This function computes and returns the objective value of a solution.
