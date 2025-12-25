@@ -17,6 +17,7 @@ from heuristics.local_search import solve as local_search
 from heuristics.variable_neighborhood_descent import solve as variable_neighborhood_descent
 from heuristics.greedy_randomized_adaptive_search_procedure import solve as greedy_randomized_adaptive_search_procedure
 from heuristics.simulated_annealing import solve as simulated_annealing
+from heuristics.ant_colony_optimization import solve as ant_colony_optimization
 from tools import *
 
 def read_input_file(filepath):
@@ -80,7 +81,8 @@ def process_for_statistic(heuristic_type, input_file, output_path, neighborhood,
         "ls": local_search,
         "vnd": variable_neighborhood_descent,
         "grasp": greedy_randomized_adaptive_search_procedure,
-        "sa": simulated_annealing
+        "sa": simulated_annealing,
+        "aco": ant_colony_optimization,
     }
 
     to_fulfilled, rho, vehicles, customers = read_input_file(input_file)
@@ -129,9 +131,9 @@ def main():
 
     flag = True
     while flag:
-        heuristic_type = input("Enter your choice (c/rc/ps/ls/vnd/grasp/ts/sa): ").strip().lower()
-        if heuristic_type not in {'c', 'rc', 'ps', 'ls', 'vnd', 'grasp', 'sa'}:
-            print("Invalid input: please select one of: c, rc, ps, ls, vnd, grasp, sa")
+        heuristic_type = input("Enter your choice (c/rc/ps/ls/vnd/grasp/ts/sa/aco): ").strip().lower()
+        if heuristic_type not in {'c', 'rc', 'ps', 'ls', 'vnd', 'grasp', 'sa', 'aco'}:
+            print("Invalid input: please select one of: c, rc, ps, ls, vnd, grasp, sa, aco")
         else:
             flag = False
 
@@ -142,7 +144,8 @@ def main():
         "ls": (local_search, "local_search"),
         "vnd": (variable_neighborhood_descent, "variable_neighborhood_descent"),
         "grasp": (greedy_randomized_adaptive_search_procedure, "greedy_randomized_adaptive_search_procedure"),
-        "sa": (simulated_annealing, "simulated_annealing")
+        "sa": (simulated_annealing, "simulated_annealing"),
+        "aco": (ant_colony_optimization, "ant_colony_optimization"),
     }
 
     to_fullfilled, rho, vehicles, customers = read_input_file(args.input)
@@ -154,7 +157,10 @@ def main():
 
     func_name = func_name.replace("_", " ").title()
 
-    result = func(customers, vehicles, to_fullfilled, rho)
+    if heuristic_type == "aco":
+        result = func(customers, vehicles, to_fullfilled, graph)
+    else:
+        result = func(customers, vehicles, to_fullfilled, rho)
 
     end_time = time.time()
     elapsed_time = end_time - start_time
