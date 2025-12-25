@@ -32,6 +32,8 @@ class LiveGraph:
         self.node_radius = node_radius
         self.pheromone_threshold = pheromone_threshold
 
+        self.dragging_node = None
+
         self.font = pygame.font.SysFont("consolas", 14)
 
         self.pos = {}
@@ -60,6 +62,18 @@ class LiveGraph:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mx, my = pygame.mouse.get_pos()
+                for node, (x, y) in self.pos.items():
+                    if (mx - x) ** 2 + (my - y) ** 2 <= self.node_radius ** 2:
+                        self.dragging_node = node
+                        break
+            elif event.type == pygame.MOUSEBUTTONUP:
+                self.dragging_node = None
+
+            elif event.type == pygame.MOUSEMOTION:
+                if self.dragging_node is not None:
+                    self.pos[self.dragging_node] = pygame.mouse.get_pos()
 
     # Rendering
     def draw_pheromone_edges(self):
