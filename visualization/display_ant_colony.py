@@ -13,14 +13,13 @@ class LiveGraph:
         node_color_dropoff=(149,150,193),
         node_color_depot=(118,55,82),
         pheromone_color=(0, 220, 255),
-        node_radius=7, pheromone_threshold=1e-6
+        node_radius=7, pheromone_threshold=0.2
     ):
         pygame.init()
         self.screen = pygame.display.set_mode((width, height))
         pygame.display.set_caption(title)
         self.clock = pygame.time.Clock()
 
-        self.graph = graph
         self.width = width
         self.height = height
 
@@ -37,18 +36,18 @@ class LiveGraph:
         self.font = pygame.font.SysFont("consolas", 14)
 
         self.pos = {}
-        self._compute_positions_from_coordinates()
+        self._compute_positions_from_coordinates(graph)
 
-    def _compute_positions_from_coordinates(self):
-        xs = [n.x for n in self.graph.nodes]
-        ys = [n.y for n in self.graph.nodes]
+    def _compute_positions_from_coordinates(self, graph):
+        xs = [n.x for n in graph.nodes]
+        ys = [n.y for n in graph.nodes]
 
         min_x, max_x = min(xs), max(xs)
         min_y, max_y = min(ys), max(ys)
 
         margin = 100
 
-        for n in self.graph.nodes:
+        for n in graph.nodes:
             x = n.x
             y = n.y
 
@@ -76,9 +75,9 @@ class LiveGraph:
                     self.pos[self.dragging_node] = pygame.mouse.get_pos()
 
     # Rendering
-    def draw_pheromone_edges(self):
-        for u, v, data in self.graph.edges(data=True):
-            pheromone = data.get("pheromone", 0.0)
+    def draw_pheromone_edges(self, graph):
+        for u, v in graph.edges():
+            pheromone = graph[u][v]["scent"]
 
             if pheromone <= self.pheromone_threshold:
                 continue
@@ -86,7 +85,7 @@ class LiveGraph:
             x1, y1 = self.pos[u]
             x2, y2 = self.pos[v]
 
-            width = max(1, int(2 + 6 * pheromone))
+            width = max(1, int(1 + 0.5 * pheromone))
 
             pygame.draw.line(
                 self.screen,
@@ -108,9 +107,9 @@ class LiveGraph:
             label = self.font.render(f"{node.index}", True, (51, 0, 25))
             self.screen.blit(label, (x + 8, y - 8))
 
-    def render(self):
+    def render(self, graph):
         self.screen.fill(self.bg_color)
-        self.draw_pheromone_edges()
+        self.draw_pheromone_edges(graph)
         self.draw_nodes()
         pygame.display.flip()
         self.clock.tick(60)
