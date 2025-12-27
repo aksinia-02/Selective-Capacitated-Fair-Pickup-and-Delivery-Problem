@@ -158,13 +158,14 @@ def main():
     func_name = func_name.replace("_", " ").title()
 
     if heuristic_type == "aco":
-        result = func(customers, vehicles, to_fullfilled, graph, 3, 1, 3, 0.2)
+        result = func(customers, vehicles, to_fullfilled, graph, 1, 1, 3, 0.2)
     else:
         result = func(customers, vehicles, to_fullfilled, rho)
 
     end_time = time.time()
     elapsed_time = end_time - start_time
     print(f"Execution time: {elapsed_time:.4f} seconds")
+
 
     obj_func = round(objective_function(result, rho), 2)
     display_graph(graph, result, obj_func, func_name)

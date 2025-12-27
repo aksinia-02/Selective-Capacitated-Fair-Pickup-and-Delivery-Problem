@@ -5,6 +5,8 @@ from classes.ObjectiveTracker import ObjectiveTracker
 from visualization.display_ant_colony import LiveGraph
 from classes.aco.Ant import Ant
 
+from tools import max_min_fairness
+
 import random
 import time
 
@@ -12,32 +14,45 @@ def solve(customers, initial_solution, to_fulfilled, graph, n_ants, alpha, beta,
 
     visualization = LiveGraph(graph)
     fill_world_representation(graph)
-    Ant.alpha = alpha
-    Ant.beta = beta
+    Ant.init_static_class_variables(graph, (len(graph.nodes()) - 1) // 2, alpha, beta)
     ants = create_ants(n_ants, initial_solution[0].path[0], initial_solution[0].capacity, graph)
 
-    for ant in ants:
-        ant.make_step()
-        ant.make_step()
-        ant.make_step()
-        print(ant)
+    for _ in range(1):
+        best_ant = None
+        max_quality = 0
+        for ant in ants:
+            ant.construct_soltution(initial_solution)
+            new_objective = max_min_fairness(initial_solution)
+            if new_objective > max_quality:
+                best_ant = ant
+                max_quality = new_objective
+
+    while True:
+        visualization.handle_events()
+        visualization.render(graph)
+        time.sleep(0.05)
+
+    # for ant in ants:
+    #     ant.make_step()
+    #     ant.make_step()
+    #     ant.make_step()
+    #     print(ant)
 
     # for u, v in list(graph.edges()):
     #     print(graph[u][v]["scent"])
 
 
-    while True:
-        visualization.handle_events()
+    # for i in range(50):
+    #     visualization.handle_events()
+    #     for ant in ants:
+    #         ant.make_step()
 
-        visualization.render(graph)
-        time.sleep(0.05)
+    #     visualization.render(graph)
+    #     time.sleep(0.05)
 
 def create_ants(n_ants, depot, capacity, graph):
     ants = []
     for i in range(n_ants):
-        if i == 0:
-            Ant.graph = graph
-            Ant.n_customers = int((len(graph.nodes()) - 1) / 2)
         ants.append(Ant(i, 0.2, depot, capacity))
     return ants
 
