@@ -12,7 +12,6 @@ class LiveGraph:
         node_color_pickup=(153,206,214),
         node_color_dropoff=(149,150,193),
         node_color_depot=(118,55,82),
-        pheromone_color=(0, 220, 255),
         node_radius=7, pheromone_threshold=0.2
     ):
         pygame.init()
@@ -27,7 +26,6 @@ class LiveGraph:
         self.node_color_pickup = node_color_pickup
         self.node_color_dropoff = node_color_dropoff
         self.node_color_depot = node_color_depot
-        self.pheromone_color = pheromone_color
         self.node_radius = node_radius
         self.pheromone_threshold = pheromone_threshold
 
@@ -78,6 +76,7 @@ class LiveGraph:
     def draw_pheromone_edges(self, graph):
         for u, v in graph.edges():
             pheromone = graph[u][v]["scent"]
+            pheromone_color = graph[u][v]["color"]
 
             if pheromone <= self.pheromone_threshold:
                 continue
@@ -87,13 +86,7 @@ class LiveGraph:
 
             width = max(1, int(1 + 0.5 * pheromone))
 
-            pygame.draw.line(
-                self.screen,
-                self.pheromone_color,
-                (x1, y1),
-                (x2, y2),
-                width
-            )
+            pygame.draw.line(self.screen, pheromone_color, (x1, y1), (x2, y2), width)
 
     def draw_nodes(self):
         for node, (x, y) in self.pos.items():

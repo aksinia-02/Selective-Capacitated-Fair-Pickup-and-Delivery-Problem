@@ -45,6 +45,6 @@ def fill_world_representation(graph):
 
     for u, v in list(graph.edges()):
         graph[u][v]["width"] = random.randint(1, 4)
-        graph[u][v]["color"] = (255, 100, 100)
+        graph[u][v]["color"] = (220, 220, 220)
         graph[u][v]["scent"] = 0.2
 
