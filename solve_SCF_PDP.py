@@ -158,7 +158,7 @@ def main():
     func_name = func_name.replace("_", " ").title()
 
     if heuristic_type == "aco":
-        result = func(customers, vehicles, to_fullfilled, graph, 1, 1, 3, 0.2, "min_max")
+        result = func(customers, vehicles, to_fullfilled, graph, 3, 1, 3, 0.2, rho, "jain")
     else:
         result = func(customers, vehicles, to_fullfilled, rho)
 

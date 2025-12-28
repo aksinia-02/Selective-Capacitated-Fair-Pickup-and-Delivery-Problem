@@ -14,10 +14,9 @@ def objective_function(vehicles, rho):
 
     return objective
 
-def max_min_fairness(vehicles):
+def max_min_fairness(vehicles, rho=None):
 
     lengths = [v.path_length for v in vehicles]
-    print(lengths)
 
     min_length = min(lengths)
     max_length = max(lengths)
@@ -27,7 +26,7 @@ def max_min_fairness(vehicles):
     
     return max(min_length / max_length, 1e-6)
 
-def gini_coefficient(vehicles):
+def gini_coefficient(vehicles, rho=None):
 
     lengths = [v.path_length for v in vehicles]
     n = len(lengths)
