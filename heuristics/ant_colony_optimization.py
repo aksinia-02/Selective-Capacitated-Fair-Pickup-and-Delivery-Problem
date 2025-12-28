@@ -4,27 +4,36 @@ from classes.Vehicle import Vehicle
 from classes.ObjectiveTracker import ObjectiveTracker
 from visualization.display_ant_colony import LiveGraph
 from classes.aco.Ant import Ant
+from classes.aco.AntColony import AntColony
 
-from tools import max_min_fairness
+from tools import max_min_fairness, gini_coefficient, objective_function
 
 import random
 import time
 
-def solve(customers, initial_solution, to_fulfilled, graph, n_ants, alpha, beta, rho):
+def solve(customers, initial_solution, to_fulfilled, graph, n_ants, alpha, beta, rho, obj_name):
+
+    switcher = {
+        "min_max": max_min_fairness,
+        "gini": gini_coefficient,
+        "jain": objective_function
+    }
+
+    func = switcher[obj_name]
 
     visualization = LiveGraph(graph)
     fill_world_representation(graph)
-    Ant.init_static_class_variables(graph, (len(graph.nodes()) - 1) // 2, alpha, beta)
-    ants = create_ants(n_ants, initial_solution[0].path[0], initial_solution[0].capacity, graph)
+    ant_colony = AntColony(graph, alpha, beta, initial_solution, func)
 
     for _ in range(1):
-        best_ant = None
+        best_path = None
         max_quality = 0
-        for ant in ants:
-            ant.construct_soltution(initial_solution)
+        for _ in range(n_ants):
+            ant_colony.construct_solution()
+            #ant.construct_soltution(initial_solution)
             new_objective = max_min_fairness(initial_solution)
             if new_objective > max_quality:
-                best_ant = ant
+                best_path = initial_solution
                 max_quality = new_objective
 
     while True:
@@ -49,12 +58,6 @@ def solve(customers, initial_solution, to_fulfilled, graph, n_ants, alpha, beta,
 
     #     visualization.render(graph)
     #     time.sleep(0.05)
-
-def create_ants(n_ants, depot, capacity, graph):
-    ants = []
-    for i in range(n_ants):
-        ants.append(Ant(i, 0.2, depot, capacity))
-    return ants
 
 def fill_world_representation(graph):
 

@@ -52,15 +52,15 @@ class Vehicle:
         return self.capacity - self.load
 
 
-    def add_section_path(self, other: Point):
+    def add_section_path(self, other: Point, section_length=None):
         """
         This function adds a new point at the end of the path of this vehicle.
         The path, path_length, load, load_history and position are updated accordingly.
 
         other: the new point to be added.
         """
-
-        section_length = self.position.calculate_distance(other)
+        if not section_length:
+            section_length = self.position.calculate_distance(other)
         self.path_length  = self.path_length + section_length
         self.path.append(other)
         self.load += other.goods
