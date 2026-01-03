@@ -5,7 +5,8 @@ import math
 
 class AntColony:
 
-    def __init__(self, graph, alpha, beta, initial_solution, to_fulfilled, func_objective, maximize, rho):
+    def __init__(self, index, graph, alpha, beta, initial_solution, to_fulfilled, func_objective, maximize, rho):
+        self.index = index
         self.graph = graph
         self.to_fulfilled = to_fulfilled
         self.n_customers = (len(graph.nodes()) - 1) // 2

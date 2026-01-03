@@ -32,15 +32,13 @@ def solve(customers, initial_solution, to_fulfilled, graph, n_colonies, alpha, b
     for i in range(100):
         print(f"step {i}")
 
-        #evaporate_pheromone(graph, evaporation)
-
         best_colony = None
         best_obj = 0 if maximize else math.inf  
 
         all_colonies = []
 
-        for _ in range(n_colonies):
-            ant_colony = AntColony(graph, alpha, beta, initial_solution, to_fulfilled, func, maximize, rho)
+        for i in range(n_colonies):
+            ant_colony = AntColony(i, graph, alpha, beta, initial_solution, to_fulfilled, func, maximize, rho)
             solution = ant_colony.construct_solution()
             all_colonies.append(ant_colony)
             new_objective = func(solution, rho)
@@ -77,12 +75,6 @@ def fill_world_representation(graph):
         graph[u][v]["color"] = (220, 220, 220)
         graph[u][v]["scent"] = 0.2
 
-def evaporate_pheromone(graph, evaporation, tau_min=1e-4):
-    for u, v in graph.edges():
-        graph[u][v]["scent"] *= (1 - evaporation)
-        if graph[u][v]["scent"] < tau_min:
-            graph[u][v]["scent"] = tau_min
-
 def update_edge_colors(graph, tau_min, tau_max):
     for u, v in graph.edges():
         tau = graph[u][v]["scent"]
@@ -94,11 +86,18 @@ def update_edge_colors(graph, tau_min, tau_max):
 
         graph[u][v]["color"] = (red, 0, blue)
 
+def normalized_objective(obj, obj_min, obj_max):
+    return (obj - obj_min) / (obj_max - obj_min + 1e-9)
+
 def deposit_pheromone_rank_based(graph, all_colonies, rho, w, best_colony, maximize):
     """
     Rank-Based Ant System (Bullnheimer, 1999)
     Ranking is done by objective value
     """
+    Q = 1 
+
+    objs = [c.final_objective for c in all_colonies]
+    obj_min, obj_max = min(objs), max(objs)
 
     # Evaporation
     for u, v in graph.edges():
@@ -107,13 +106,16 @@ def deposit_pheromone_rank_based(graph, all_colonies, rho, w, best_colony, maxim
     # Rank ants by objective value
     all_colonies.sort(key=lambda c: c.final_objective,reverse=maximize)
 
+    w = max(3, min(w, len(all_colonies)))
+
     # Deposit pheromone from top (w-1) ants
-    for r, colony in enumerate(all_colonies[:w], start=1):
+    for r, colony in enumerate(all_colonies[:w]):
         weight = w - r
+        quality = normalized_objective(colony.final_objective, obj_min, obj_max)
         for ant in colony.ants:
 
             vehicle = ant.vehicle
-            delta = weight * 500 / vehicle.path_length
+            delta = weight * Q * quality / (1 + 1e-4 * vehicle.path_length)
 
             path = vehicle.path
             for i in range(len(path) - 1):
