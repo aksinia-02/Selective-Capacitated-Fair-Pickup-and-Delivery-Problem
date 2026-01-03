@@ -40,6 +40,7 @@ class Ant:
         if self.active:
             if self.next_node.index == node.index:
                 self.next_node = None
+            #print(f"{self.index}) deleted {node.index}")
             self.pos_next_nodes.pop(node.index, None)
         return len(self.pos_next_nodes) == 0
 
@@ -63,7 +64,11 @@ class Ant:
         if self.next_node.index <= self.n_customers:
             d_index = self.n_customers + self.next_node.index
             self.pos_next_nodes[d_index] = self.dropoffs[d_index]
+            #print(f"{self.index}) added dropoff for {self.next_node.index}")
+        #self.print_pos_next_nodes()
         self.pos_next_nodes.pop(self.next_node.index)
+        #print(f"{self.index}) deleted pickupp {self.next_node.index}")
+        
         self.next_node = None
 
         return len(self.pos_next_nodes) == 0
@@ -71,10 +76,6 @@ class Ant:
 
     def get_feasible_neighbors(self):
         feasible = []
-        # result_string = ""
-        # for _, n in self.pos_next_nodes.items():
-        #     result_string += f"{n.index}, "
-        # print(result_string)
 
         for _, n in self.pos_next_nodes.items():
             if self.vehicle.capacity >= n.goods + self.vehicle.load:
@@ -96,6 +97,29 @@ class Ant:
 
         probabilities = [w / total for w in weights]
         return probabilities
+    
+    def print_pos_next_nodes(self):
+        result_string = ""
+        for _, n in self.pos_next_nodes.items():
+            result_string += f"{n.index}, "
+        #print(f"{self.index}) {result_string}")
+    
+    def clean_unused_customers(self):
+        if not self.active:
+            return True
+        #print(f"current path: {self.vehicle.print_path()}")
+
+        keep_indices = {point.index + self.n_customers for point in self.vehicle.path[1:]}
+
+        current_keys = list(self.pos_next_nodes.keys())
+        for key in current_keys:
+            if key not in keep_indices:
+                self.pos_next_nodes.pop(key)
+                #print(f"{self.index}: deleted {key}, unused by current path")
+        if self.next_node and self.next_node.index not in keep_indices:
+            self.next_node = None
+        return len(self.pos_next_nodes) == 0
+
     
     def __repr__(self):
         return f"(ind={self.index}, scent_strength={self.scent_strength}, vehicle_path={self.vehicle.path}"

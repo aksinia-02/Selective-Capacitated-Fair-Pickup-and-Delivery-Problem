@@ -15,6 +15,8 @@ import math
 
 def solve(customers, initial_solution, to_fulfilled, graph, n_colonies, alpha, beta, evaporation, rho, obj_name):
 
+    n_colonies= 4
+
     switcher = {
         "min_max": (max_min_fairness, True),
         "gini": (gini_coefficient, True),
@@ -29,7 +31,8 @@ def solve(customers, initial_solution, to_fulfilled, graph, n_colonies, alpha, b
     global_best_colony = None
     global_max_obj = 0 if maximize else math.inf
 
-    for _ in range(100):
+    for i in range(100):
+        print(f"step {i}")
 
         evaporate_pheromone(graph, evaporation)
 

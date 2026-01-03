@@ -29,6 +29,12 @@ class Vehicle:
 
     def __repr__(self):
         return f"Vehicle(index={self.index}, capacity={self.capacity}, load={self.load}, position={self.position}, path_length={self.path_length} path={self.path})"
+    
+    def print_path(self):
+        result_string = ""
+        for n in self.path:
+            result_string += f"{n.index}, "
+        return result_string
 
 
     def copy(self):

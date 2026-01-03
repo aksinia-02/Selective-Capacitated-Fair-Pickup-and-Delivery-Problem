@@ -16,6 +16,8 @@ class AntColony:
         self.func_objective = func_objective
         self.rho = rho
         self.maximize = maximize
+        self.active_ants_counter = self.n_vehicles
+        self.must_clean = True
 
     def create_ants(self, vehicles, graph):
         n_ants = len(vehicles)
@@ -25,10 +27,21 @@ class AntColony:
             ants.append(Ant(i, 0.2, vehicles[i]))
         return ants
     
+    def keep_depots_selected_pickupps(self):
+        for ant in self.ants:
+            completed_path = ant.clean_unused_customers()
+            #print(f"{ant.index} cleaned: {completed_path}")
+            if completed_path:
+                    self.active_ants_counter -= 1
+                    ant.active = False
+    
     def construct_solution(self):
-        active_ants_counter = self.n_vehicles
 
-        while (active_ants_counter > 0) and self.to_fulfilled > 0:
+        while (self.active_ants_counter > 0):
+            #print(f"to_fullfilled: {self.to_fulfilled}")
+            if self.must_clean and (self.to_fulfilled == 0):
+                self.keep_depots_selected_pickupps()
+                self.must_clean = False
             best_obj = 0 if self.maximize else math.inf  
             best_next = None
             best_ant = 0
@@ -42,16 +55,26 @@ class AntColony:
                         best_next = copy.deepcopy(next_node)
                         best_ant = i
                     ant.vehicle.path_length -= weight
+            #print(f"best ant {best_ant}, best next: {best_next}")
+
             for i, ant in enumerate(self.ants):
                 if i == best_ant:
                     if ant.next_node.index <= self.n_customers:
-                        self.to_fulfilled -= 1
+                        if ant.next_node.type == 2:
+                            self.to_fulfilled -= 1
                     completed_path = ant.make_step()
+                    #ant.print_pos_next_nodes()
+                    #print(completed_path)
                 else:
-                    completed_path = ant.delete_assigned_node(best_next)
+                    if not ant.active:
+                        completed_path = False
+                    else:
+                        completed_path = ant.delete_assigned_node(best_next)
+                        #ant.print_pos_next_nodes()
                 if completed_path:
-                    active_ants_counter -= 1
+                    self.active_ants_counter -= 1
                     ant.active = False
+                #print(self.active_ants_counter)
 
         depot = self.solution[0].path[0]
         for vehicle in self.solution:
