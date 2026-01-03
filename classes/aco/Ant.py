@@ -56,8 +56,6 @@ class Ant:
 
 
     def make_step(self):
-        # self.graph[self.vehicle.position][self.next_node]["scent"] += self.scent_strength
-        # self.graph[self.vehicle.position][self.next_node]["color"] = self.color
 
         self.vehicle.add_section_path(self.next_node, self.graph[self.vehicle.position][self.next_node]["weight"])
 

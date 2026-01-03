@@ -12,7 +12,7 @@ class LiveGraph:
         node_color_pickup=(153,206,214),
         node_color_dropoff=(149,150,193),
         node_color_depot=(118,55,82),
-        node_radius=7, pheromone_threshold=0.2
+        node_radius=7, pheromone_threshold=0.1
     ):
         pygame.init()
         self.screen = pygame.display.set_mode((width, height))

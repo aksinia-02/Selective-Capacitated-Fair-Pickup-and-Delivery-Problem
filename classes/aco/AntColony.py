@@ -18,6 +18,7 @@ class AntColony:
         self.maximize = maximize
         self.active_ants_counter = self.n_vehicles
         self.must_clean = True
+        self.final_objective = 0
 
     def create_ants(self, vehicles, graph):
         n_ants = len(vehicles)
@@ -79,5 +80,7 @@ class AntColony:
         depot = self.solution[0].path[0]
         for vehicle in self.solution:
             vehicle.add_section_path(depot, self.graph[vehicle.position][depot]["weight"])
+
+        self.final_objective = self.func_objective(self.solution, self.rho)
         return self.solution
             
