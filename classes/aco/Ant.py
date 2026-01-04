@@ -65,7 +65,7 @@ class Ant:
             #print(f"{self.index}) added dropoff for {self.next_node.index}")
         #self.print_pos_next_nodes()
         self.pos_next_nodes.pop(self.next_node.index)
-        #print(f"{self.index}) deleted pickupp {self.next_node.index}")
+        #print(f"{self.index}) deleted pickup {self.next_node.index}")
         
         self.next_node = None
 

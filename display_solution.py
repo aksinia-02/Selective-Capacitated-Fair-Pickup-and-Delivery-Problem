@@ -10,7 +10,7 @@ def get_label(node, nodes_len):
     elif node.type == 2:
         label = f"{node.index}"
     elif node.type == 3:
-        label = f"{node.index - 50}"
+        label = f"{int(node.index - nodes_len)}"
     else:
         label = str(node.index)
     return label

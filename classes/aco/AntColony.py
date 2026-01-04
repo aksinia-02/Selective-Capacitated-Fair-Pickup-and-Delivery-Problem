@@ -29,7 +29,7 @@ class AntColony:
             ants.append(Ant(i, 0.2, vehicles[i]))
         return ants
     
-    def keep_depots_selected_pickupps(self):
+    def keep_depots_selected_pickups(self):
         for ant in self.ants:
             completed_path = ant.clean_unused_customers()
             #print(f"{ant.index} cleaned: {completed_path}")
@@ -42,7 +42,7 @@ class AntColony:
         while (self.active_ants_counter > 0):
             #print(f"to_fullfilled: {self.to_fulfilled}")
             if self.must_clean and (self.to_fulfilled == 0):
-                self.keep_depots_selected_pickupps()
+                self.keep_depots_selected_pickups()
                 self.must_clean = False
             best_obj = 0 if self.maximize else math.inf  
             best_next = None
