@@ -8,7 +8,7 @@ from classes.Customer import Customer
 from classes.Point import Point
 from classes.Vehicle import Vehicle
 from display_solution import display_graph
-from heuristics import greedy_randomized_adaptive_search_procedure
+from heuristics import greedy_randomized_adaptive_search_procedure, genetic_algorithm
 
 from heuristics.construction import solve as construction
 from heuristics.randomized_construction import solve as randomized_construction
@@ -18,6 +18,7 @@ from heuristics.variable_neighborhood_descent import solve as variable_neighborh
 from heuristics.greedy_randomized_adaptive_search_procedure import solve as greedy_randomized_adaptive_search_procedure
 from heuristics.simulated_annealing import solve as simulated_annealing
 from heuristics.ant_colony_optimization import solve as ant_colony_optimization
+from heuristics.genetic_algorithm import solve as genetic_algorithm
 from tools import *
 
 def read_input_file(filepath):
@@ -83,12 +84,13 @@ def process_for_statistic(heuristic_type, input_file, output_path, neighborhood,
         "grasp": greedy_randomized_adaptive_search_procedure,
         "sa": simulated_annealing,
         "aco": ant_colony_optimization,
+        "ga": genetic_algorithm
     }
 
     to_fulfilled, rho, vehicles, customers = read_input_file(input_file)
 
     # initialize solution if the heuristic starts with a solution
-    if heuristic_type != "c" and heuristic_type != "rc" and heuristic_type != "ps" and heuristic_type != "grasp":
+    if heuristic_type != "c" and heuristic_type != "rc" and heuristic_type != "ps" and heuristic_type != "grasp" and heuristic_type != "ga":
         vehicles = construction(customers, vehicles, to_fulfilled, rho, strategy="with_reordering")
 
 
@@ -131,9 +133,9 @@ def main():
 
     flag = True
     while flag:
-        heuristic_type = input("Enter your choice (c/rc/ps/ls/vnd/grasp/ts/sa/aco): ").strip().lower()
-        if heuristic_type not in {'c', 'rc', 'ps', 'ls', 'vnd', 'grasp', 'sa', 'aco'}:
-            print("Invalid input: please select one of: c, rc, ps, ls, vnd, grasp, sa, aco")
+        heuristic_type = input("Enter your choice (c/rc/ps/ls/vnd/grasp/ts/sa/aco/ga): ").strip().lower()
+        if heuristic_type not in {'c', 'rc', 'ps', 'ls', 'vnd', 'grasp', 'sa', 'aco', 'ga'}:
+            print("Invalid input: please select one of: c, rc, ps, ls, vnd, grasp, sa, aco, ga")
         else:
             flag = False
 
@@ -146,6 +148,7 @@ def main():
         "grasp": (greedy_randomized_adaptive_search_procedure, "greedy_randomized_adaptive_search_procedure"),
         "sa": (simulated_annealing, "simulated_annealing"),
         "aco": (ant_colony_optimization, "ant_colony_optimization"),
+        "ga": (genetic_algorithm, "genetic_algorithm")
     }
 
     to_fullfilled, rho, vehicles, customers = read_input_file(args.input)
