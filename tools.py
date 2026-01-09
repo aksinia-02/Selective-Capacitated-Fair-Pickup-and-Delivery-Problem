@@ -87,7 +87,7 @@ def is_solution_valid(solution, to_fulfilled):
     for vehicle in solution:
         if not is_valid(vehicle):
             return False
-        fulfilled = fulfilled + len(vehicle.path)/2
+        fulfilled = fulfilled + len(vehicle.path)/2 - 1
     return fulfilled >= to_fulfilled
 
 def reorder_paths(vehicles, n):

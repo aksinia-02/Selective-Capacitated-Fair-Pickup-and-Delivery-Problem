@@ -6,10 +6,11 @@ from heuristics import randomized_construction
 import copy
 import classes.Individual as Individual
 import numpy as np
+from heuristics.neighborhood_structures.exchange_neighborhood import perform_exchange
+from heuristics.neighborhood_structures.move_neighborhood import perform_move
 
 
-
-def solve(customers, vehicles, to_fulfilled, rho, population_size=10, s=1.5, selection_method="roulette-wheel", tournament_size=3, tournament_replace=True, recombination_method="", mutation_method="", num_elites=0, output_statistic=False, recombination_rate=1, mutation_rate=0.1):
+def solve(customers, vehicles, to_fulfilled, rho, population_size=10, s=1.5, selection_method="roulette-wheel", tournament_size=3, tournament_replace=True, recombination_weights=None, mutation_weights=None, num_elites=0, output_statistic=False, recombination_rate=1, mutation_rate=0.1):
 
     if s < 1 or s > 2:
         raise ValueError(f"s must be between 1 and 2: {s}")
@@ -21,6 +22,30 @@ def solve(customers, vehicles, to_fulfilled, rho, population_size=10, s=1.5, sel
         raise ValueError(f"recombination_rate must be between 0 and 1: {recombination_rate}")
     if mutation_rate < 0 or mutation_rate > 1:
         raise ValueError(f"mutation_rate must be between 0 and 1: {mutation_rate}")
+    if recombination_weights is None:
+        recombination_weights = [1]
+    else:
+        if len(recombination_weights) != len(RECOMBINATION_METHODS):
+            raise ValueError(
+                f"Expected exactly {len(RECOMBINATION_METHODS)} recombination weights, got {len(recombination_weights)}"
+            )
+        total = sum(recombination_weights)
+        if abs(total - 1.0) > 0:
+            raise ValueError(
+                f"Recombination weights must sum to 1.0, got {total}"
+            )
+    if mutation_weights is None:
+        mutation_weights = [0.5,0.5]
+    else:
+        if len(mutation_weights) != len(MUTATION_METHODS):
+            raise ValueError(
+                f"Expected exactly {len(MUTATION_METHODS)} mutation weights, got {len(mutation_weights)}"
+            )
+        total = sum(mutation_weights)
+        if abs(total - 1.0) > 0:
+            raise ValueError(
+                f"Mutation weights must sum to 1.0, got {total}"
+            )
 
     t = 0
     current_population = initialize(customers, vehicles, to_fulfilled, rho, population_size)
@@ -31,11 +56,11 @@ def solve(customers, vehicles, to_fulfilled, rho, population_size=10, s=1.5, sel
     while t < 100:
         t += 1
         Q_s = select(current_population, selection_method, num_elites, tournament_size, tournament_replace)
-        Q_r = recombine(Q_s, recombination_rate, recombination_method)
-        Q_m = mutate(Q_r, mutation_rate, mutation_method)
+        Q_r = recombine(Q_s, recombination_rate, recombination_weights, customers, to_fulfilled)
+        Q_m = mutate(Q_r, mutation_rate, mutation_weights, customers)
 
         current_population = replace(current_population, Q_m, num_elites)
-        evaluate(current_population, rho)
+        evaluate(current_population, rho, s)
         candidate = best_individual(current_population)
         statistic.update(candidate.solution, rho)
         if candidate.cost < best.cost:
@@ -50,8 +75,7 @@ def solve(customers, vehicles, to_fulfilled, rho, population_size=10, s=1.5, sel
 
 def evaluate(population, rho, s):
     for ind in population:
-        if ind.cost is None:
-            ind.cost = objective_function(ind, rho)
+        ind.cost = objective_function(ind.solution, rho)
 
     c_max = max(ind.cost for ind in population) + 1
     for ind in population:
@@ -59,6 +83,7 @@ def evaluate(population, rho, s):
 
     f_avg = sum(ind.fitness for ind in population) / len(population)
     f_max = max(ind.fitness for ind in population)
+    g_min = min(ind.fitness for ind in population)
 
     # linear scaling
     if f_max != f_avg:
@@ -67,6 +92,10 @@ def evaluate(population, rho, s):
     else:
         a = 1.0
         b = 0.0
+
+    if a * g_min + b < 0:
+        a = f_avg / (f_avg - g_min)
+        b = a * f_avg - f_avg
 
     for ind in population:
         ind.fitness = a * ind.fitness + b
@@ -129,7 +158,7 @@ def tournament_selection(population, num_parents, k=3, replace=True):
     return selected
 
 
-def recombine(Q_s, recombination_rate, recombination_method):
+def recombine(Q_s, recombination_rate, recombination_weights, customers, to_fulfilled):
     offsprings = []
     n = len(Q_s)
     i = 0
@@ -139,31 +168,173 @@ def recombine(Q_s, recombination_rate, recombination_method):
         parent2 = Q_s[i+1]
 
         if random.random() < recombination_rate:
-            children = recombination_method(parent1, parent2)
+            recombination = random.choices(
+                RECOMBINATION_METHODS,
+                weights=recombination_weights,
+                k=1
+            )[0]
+            children = recombination(parent1, parent2, customers, to_fulfilled)
         else:
-            children = [parent1.copy(), parent2.copy()]
+            children = [copy.deepcopy(parent1), copy.deepcopy(parent2)]
 
         offsprings.extend(children)
         i += 2
 
     if n % 2 == 1:
         last_parent = Q_s[-1]
-        offsprings.extend(last_parent)
+        offsprings.extend(copy.deepcopy(last_parent))
 
     return offsprings
 
+def simple_recombination(parent1, parent2, customers, to_fulfilled):
+    child1 = copy.deepcopy(parent1)
+    child2 = copy.deepcopy(parent2)
 
-def mutate(Q_r, mutation_rate, mutation_method):
+    random.shuffle(child1.solution)
+
+    for i, vehicle in enumerate(child1.solution):
+        vehicle.index = i
+
+    for k in range(len(child1.solution)):
+        if random.random() < 0.5:
+            # swap the corresponding vehicles
+            child1.solution[k], child2.solution[k] = child2.solution[k], child1.solution[k]
+
+    repair_child(child1.solution, parent1.solution, parent2.solution, customers, to_fulfilled)
+    repair_child(child2.solution, parent1.solution, parent2.solution, customers, to_fulfilled)
+
+    return [child1, child2]
+
+def repair_child(child, parent1, parent2, customers, to_fulfilled):
+
+    for customer in customers:
+        customer_counter = 0
+        v1 = None
+        v2 = None
+        for v in child:
+            if customer.pickup in v.path:
+                customer_counter += 1
+                if customer_counter == 1:
+                    v1 = v
+                elif customer_counter == 2:
+                    v2 = v
+
+        if v1 is not None and v2 is not None:
+            if v1.path_length < v2.path_length:
+                v2.remove_section_path(customer.dropoff)
+                v2.remove_section_path(customer.pickup)
+            else:
+                v1.remove_section_path(customer.dropoff)
+                v1.remove_section_path(customer.pickup)
+
+    i = 0
+    if is_solution_valid(child, to_fulfilled):
+        return
+
+
+    unfulfilled = []
+    for customer in customers:
+        if find_vehicle(child, customer.pickup) is None:
+            unfulfilled.append(customer)
+
+    while not is_solution_valid(child, to_fulfilled) and i < to_fulfilled:
+        i = i + 1
+        customer = random.choice(unfulfilled)
+        unfulfilled.remove(customer)
+        shortest_path = None
+        shortest_vehicle = None
+        for vehicle in child:
+            if shortest_path is None or shortest_path > vehicle.path_length:
+                shortest_path = vehicle.path_length
+                shortest_vehicle = vehicle
+
+        shortest_vehicle.add_section_path_before(shortest_vehicle.path[-1], customer.pickup)
+        shortest_vehicle.add_section_path_before(shortest_vehicle.path[-1], customer.dropoff)
+        reorder_paths(child, len(customers))
+
+
+
+def mutate(Q_r, mutation_rate, mutation_weights, customers):
     mutated_population = []
 
     for ind in Q_r:
         if random.random() < mutation_rate:
-            mutated = mutation_method(ind)
-            mutated_population.append(mutated)
+            mutation = random.choices(
+                MUTATION_METHODS,
+                weights=mutation_weights,
+                k=1
+            )[0]
+            mutated_population.append(mutation(ind, customers))
         else:
             mutated_population.append(ind)
 
     return mutated_population
+
+def swap_mutation(individual, customers, max_attempts=5):
+    for _ in range(max_attempts):
+        mutated_solution = copy.deepcopy(individual.solution)
+
+        first, second = random.sample(customers, 2)
+
+        first_v = find_vehicle(mutated_solution, first.pickup)
+        second_v = find_vehicle(mutated_solution, second.pickup)
+
+        if first_v is None and second_v is None:
+            continue
+        perform_exchange(first_v, second_v, first, second)
+
+        if (first_v is None or is_valid(first_v)) and \
+           (second_v is None or is_valid(second_v)):
+
+            new_individual = copy.deepcopy(individual)
+            new_individual.solution = mutated_solution
+            return new_individual
+
+    return individual
+
+
+
+def move_mutation(individual, customers, max_attempts=5):
+    for _ in range(max_attempts):
+        mutated_solution = copy.deepcopy(individual.solution)
+
+        assigned_customers = [
+            c for c in customers
+            if find_vehicle(mutated_solution, c.pickup) is not None
+        ]
+        if not assigned_customers:
+            return individual
+
+        customer = random.choice(assigned_customers)
+        vehicle = find_vehicle(mutated_solution, customer.pickup)
+
+        possible_targets = [v for v in mutated_solution if v is not vehicle]
+        if not possible_targets:
+            return individual
+
+        target_vehicle = random.choice(possible_targets)
+
+        n = len(target_vehicle.path)
+        if n < 3:
+            continue
+
+        i = random.randrange(1, n - 1)
+        j = random.randrange(i + 1, n)
+
+        perform_move(
+            vehicle,
+            target_vehicle,
+            customer,
+            target_vehicle.path[i],
+            target_vehicle.path[j]
+        )
+
+        if is_valid(vehicle) and is_valid(target_vehicle):
+            new_individual = copy.deepcopy(individual)
+            new_individual.solution = mutated_solution
+            return new_individual
+
+    return individual
 
 
 def replace(old_population, offsprings, num_elites):
@@ -173,3 +344,12 @@ def replace(old_population, offsprings, num_elites):
     next_population = elites + offsprings
 
     return next_population
+
+MUTATION_METHODS = [
+    swap_mutation,
+    move_mutation,
+]
+
+RECOMBINATION_METHODS = [
+    simple_recombination,
+]

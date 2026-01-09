@@ -146,10 +146,13 @@ class Vehicle:
             load_change = self.load_history[index]
         self.path.pop(index)
         self.load = self.load - load_change
-        if index < len(self.load_history) - 1:
-            for i in range(index + 1, len(self.load_history)):
-                self.load_history[i] -= load_change
-        self.load_history.pop(index)
+
+        load = 0
+        self.load_history = []
+        for p in self.path:
+            load += p.goods
+            self.load_history.append(load)
+
 
 
     def predict_path_after_remove(self, other: Point, path=None, path_length=None):
