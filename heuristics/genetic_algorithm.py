@@ -8,9 +8,9 @@ import classes.Individual as Individual
 import numpy as np
 from heuristics.neighborhood_structures.exchange_neighborhood import perform_exchange
 from heuristics.neighborhood_structures.move_neighborhood import perform_move
+from heuristics.neighborhood_structures.neighborhood_core import choose_neighbor
 
-
-def solve(customers, vehicles, to_fulfilled, rho, population_size=10, s=1.5, selection_method="roulette-wheel", tournament_size=3, tournament_replace=True, recombination_weights=None, mutation_weights=None, num_elites=0, output_statistic=False, recombination_rate=1, mutation_rate=0.1):
+def solve(customers, vehicles, to_fulfilled, rho, t_max=100, population_size=10, s=1.5, selection_method="roulette-wheel", tournament_size=3, tournament_replace=True, recombination_weights=None, mutation_weights=None, num_elites=0, output_statistic=False, recombination_rate=0.8, mutation_rate=0.1):
 
     if s < 1 or s > 2:
         raise ValueError(f"s must be between 1 and 2: {s}")
@@ -23,7 +23,7 @@ def solve(customers, vehicles, to_fulfilled, rho, population_size=10, s=1.5, sel
     if mutation_rate < 0 or mutation_rate > 1:
         raise ValueError(f"mutation_rate must be between 0 and 1: {mutation_rate}")
     if recombination_weights is None:
-        recombination_weights = [1]
+        recombination_weights = [0.5,0.5]
     else:
         if len(recombination_weights) != len(RECOMBINATION_METHODS):
             raise ValueError(
@@ -35,7 +35,7 @@ def solve(customers, vehicles, to_fulfilled, rho, population_size=10, s=1.5, sel
                 f"Recombination weights must sum to 1.0, got {total}"
             )
     if mutation_weights is None:
-        mutation_weights = [0.5,0.5]
+        mutation_weights = [0.25,0.25,0.5]
     else:
         if len(mutation_weights) != len(MUTATION_METHODS):
             raise ValueError(
@@ -53,19 +53,21 @@ def solve(customers, vehicles, to_fulfilled, rho, population_size=10, s=1.5, sel
     best = best_individual(current_population)
     statistic = Statistic(best.solution, rho)
 
-    while t < 100:
+    while t < t_max:
         t += 1
         Q_s = select(current_population, selection_method, num_elites, tournament_size, tournament_replace)
         Q_r = recombine(Q_s, recombination_rate, recombination_weights, customers, to_fulfilled)
-        Q_m = mutate(Q_r, mutation_rate, mutation_weights, customers)
+        Q_m = mutate(Q_r, mutation_rate, mutation_weights, customers, to_fulfilled, rho)
 
         current_population = replace(current_population, Q_m, num_elites)
         evaluate(current_population, rho, s)
         candidate = best_individual(current_population)
+        #candidate.solution = variable_neighborhood_descent.solve(customers, candidate.solution, to_fulfilled, rho, improvement_strategy="first")
         statistic.update(candidate.solution, rho)
         if candidate.cost < best.cost:
             best = candidate
 
+    #best.solution = variable_neighborhood_descent.solve(customers, best.solution, to_fulfilled, rho, improvement_strategy="first")
     if output_statistic:
         return best.solution, statistic
     else:
@@ -174,6 +176,8 @@ def recombine(Q_s, recombination_rate, recombination_weights, customers, to_fulf
                 k=1
             )[0]
             children = recombination(parent1, parent2, customers, to_fulfilled)
+            if len(children) == 1:
+                children.extend(recombination(parent2, parent1, customers, to_fulfilled))
         else:
             children = [copy.deepcopy(parent1), copy.deepcopy(parent2)]
 
@@ -182,11 +186,63 @@ def recombine(Q_s, recombination_rate, recombination_weights, customers, to_fulf
 
     if n % 2 == 1:
         last_parent = Q_s[-1]
-        offsprings.extend(copy.deepcopy(last_parent))
+        offsprings.append(copy.deepcopy(last_parent))
 
     return offsprings
 
-def simple_recombination(parent1, parent2, customers, to_fulfilled):
+def get_order_from_parent(parent, customers):
+    order = []
+    seen = set()
+    for v in parent.solution:
+        for node in v.path:
+            for c in customers:
+                if node == c.pickup or node == c.dropoff:
+                    if c not in seen:
+                        seen.add(c)
+                        order.append(c)
+    return order
+
+def customer_based_recombination(parent1, parent2, customers, to_fulfilled):
+    child = copy.deepcopy(parent1)
+
+    # 1. Choose customers to KEEP from parent1
+    keep = set()
+    for c in customers:
+        if random.random() < 0.9:
+            keep.add(c)
+
+    # 2. Remove all others from child
+    for c in customers:
+        if c not in keep:
+            v = find_vehicle(child.solution, c.pickup)
+            if v is not None:
+                v.remove_section_path(c.pickup)
+                v.remove_section_path(c.dropoff)
+
+    # 3. Get missing customers in relative order from parent2
+    order = get_order_from_parent(parent2, customers)
+    missing = [c for c in order if c not in keep]
+
+    # 4. Insert missing customers in that order
+    for customer in missing:
+        # simple version: still your shortest-route logic
+        shortest_path = None
+        shortest_vehicle = None
+        for vehicle in child.solution:
+            if shortest_path is None or shortest_path > vehicle.path_length:
+                shortest_path = vehicle.path_length
+                shortest_vehicle = vehicle
+
+        shortest_vehicle.add_section_path_before(shortest_vehicle.path[-1], customer.pickup)
+        shortest_vehicle.add_section_path_before(shortest_vehicle.path[-1], customer.dropoff)
+        reorder_paths(child.solution, len(customers))
+
+    # 5. Final repair
+    repair_child(child.solution, parent1.solution, parent2.solution, customers, to_fulfilled)
+
+    return [child]
+
+def vehicle_based_recombination(parent1, parent2, customers, to_fulfilled):
     child1 = copy.deepcopy(parent1)
     child2 = copy.deepcopy(parent2)
 
@@ -254,7 +310,7 @@ def repair_child(child, parent1, parent2, customers, to_fulfilled):
 
 
 
-def mutate(Q_r, mutation_rate, mutation_weights, customers):
+def mutate(Q_r, mutation_rate, mutation_weights, customers, to_fulfilled, rho):
     mutated_population = []
 
     for ind in Q_r:
@@ -264,13 +320,13 @@ def mutate(Q_r, mutation_rate, mutation_weights, customers):
                 weights=mutation_weights,
                 k=1
             )[0]
-            mutated_population.append(mutation(ind, customers))
+            mutated_population.append(mutation(ind, customers, to_fulfilled, rho))
         else:
             mutated_population.append(ind)
 
     return mutated_population
 
-def swap_mutation(individual, customers, max_attempts=5):
+def swap_mutation(individual, customers, _to_fulfilled, _rho, max_attempts=5):
     for _ in range(max_attempts):
         mutated_solution = copy.deepcopy(individual.solution)
 
@@ -294,7 +350,7 @@ def swap_mutation(individual, customers, max_attempts=5):
 
 
 
-def move_mutation(individual, customers, max_attempts=5):
+def move_mutation(individual, customers, _to_fulfilled, _rho, max_attempts=5):
     for _ in range(max_attempts):
         mutated_solution = copy.deepcopy(individual.solution)
 
@@ -336,6 +392,16 @@ def move_mutation(individual, customers, max_attempts=5):
 
     return individual
 
+def neighborhood_mutation(individual, customers, to_fulfilled, rho, max_attempts=5):
+    neighbourhood_structures = ["exchange", "pickup_relocate",
+        "dropoff_relocate", "remove_and_append", "move"]
+    neighborhood_structure = random.choice(neighbourhood_structures)
+    better_solution = choose_neighbor(individual.solution, customers, neighborhood_structure, "first", to_fulfilled, rho)
+    if better_solution is not None:
+        individual.solution = better_solution
+    return individual
+
+
 
 def replace(old_population, offsprings, num_elites):
 
@@ -348,8 +414,10 @@ def replace(old_population, offsprings, num_elites):
 MUTATION_METHODS = [
     swap_mutation,
     move_mutation,
+    neighborhood_mutation,
 ]
 
 RECOMBINATION_METHODS = [
-    simple_recombination,
+    vehicle_based_recombination,
+    customer_based_recombination,
 ]
