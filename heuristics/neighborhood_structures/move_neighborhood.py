@@ -67,7 +67,8 @@ def perform_move(vehicle, destination_vehicle, customer, pickup_pred, dropoff_pr
     dropoff_pred: the new predecessor of the dropoff point.
     """
 
-    vehicle.remove_section_path(customer.pickup)
-    vehicle.remove_section_path(customer.dropoff)
+    if vehicle is not None:
+        vehicle.remove_section_path(customer.pickup)
+        vehicle.remove_section_path(customer.dropoff)
     destination_vehicle.add_section_path_after(dropoff_pred, customer.dropoff)
     destination_vehicle.add_section_path_after(pickup_pred, customer.pickup)

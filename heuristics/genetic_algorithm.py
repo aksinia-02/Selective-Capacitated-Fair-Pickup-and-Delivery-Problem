@@ -1,6 +1,8 @@
 import random
 
+from classes.ObjectiveTracker import ObjectiveTracker
 from classes.Statistic import Statistic
+from heuristics.neighborhood_structures.neighborhood_utils import predict_new_path_lengths_after_move
 from tools import *
 from heuristics import randomized_construction
 import copy
@@ -10,7 +12,7 @@ from heuristics.neighborhood_structures.exchange_neighborhood import perform_exc
 from heuristics.neighborhood_structures.move_neighborhood import perform_move
 from heuristics.neighborhood_structures.neighborhood_core import choose_neighbor
 
-def solve(customers, vehicles, to_fulfilled, rho, t_max=100, population_size=10, s=1.5, selection_method="roulette-wheel", tournament_size=3, tournament_replace=True, recombination_weights=None, mutation_weights=None, num_elites=0, output_statistic=False, recombination_rate=0.8, mutation_rate=0.1):
+def solve(customers, vehicles, to_fulfilled, rho, t_max=100, population_size=10, s=1.5, selection_method="roulette-wheel", tournament_size=3, tournament_replace=True, recombination_weights=None, mutation_weights=None, num_elites=0, recombination_samples=200, recombination_rate=0.8, mutation_rate=0.1, output_statistic=False):
 
     if s < 1 or s > 2:
         raise ValueError(f"s must be between 1 and 2: {s}")
@@ -18,6 +20,8 @@ def solve(customers, vehicles, to_fulfilled, rho, t_max=100, population_size=10,
         raise ValueError(f"num_elites must be between 0 and population_size ({population_size}): {num_elites}")
     if tournament_size > population_size or tournament_size < 0:
         raise ValueError(f"tournament_size must be between 0 and population_size ({population_size}): {tournament_size}")
+    if recombination_samples < 10 or recombination_samples > 1000:
+        raise ValueError(f"recombination_samples must be between 10 and 1000: {recombination_samples}")
     if recombination_rate < 0 or recombination_rate > 1:
         raise ValueError(f"recombination_rate must be between 0 and 1: {recombination_rate}")
     if mutation_rate < 0 or mutation_rate > 1:
@@ -54,9 +58,10 @@ def solve(customers, vehicles, to_fulfilled, rho, t_max=100, population_size=10,
     statistic = Statistic(best.solution, rho)
 
     while t < t_max:
+        print("iteration: ", t)
         t += 1
         Q_s = select(current_population, selection_method, num_elites, tournament_size, tournament_replace)
-        Q_r = recombine(Q_s, recombination_rate, recombination_weights, customers, to_fulfilled)
+        Q_r = recombine(Q_s, recombination_rate, recombination_weights, customers, to_fulfilled, rho, recombination_samples)
         Q_m = mutate(Q_r, mutation_rate, mutation_weights, customers, to_fulfilled, rho)
 
         current_population = replace(current_population, Q_m, num_elites)
@@ -65,6 +70,7 @@ def solve(customers, vehicles, to_fulfilled, rho, t_max=100, population_size=10,
         #candidate.solution = variable_neighborhood_descent.solve(customers, candidate.solution, to_fulfilled, rho, improvement_strategy="first")
         statistic.update(candidate.solution, rho)
         if candidate.cost < best.cost:
+            print("new best solution with obj: ", candidate.cost)
             best = candidate
 
     #best.solution = variable_neighborhood_descent.solve(customers, best.solution, to_fulfilled, rho, improvement_strategy="first")
@@ -160,7 +166,7 @@ def tournament_selection(population, num_parents, k=3, replace=True):
     return selected
 
 
-def recombine(Q_s, recombination_rate, recombination_weights, customers, to_fulfilled):
+def recombine(Q_s, recombination_rate, recombination_weights, customers, to_fulfilled, rho, samples):
     offsprings = []
     n = len(Q_s)
     i = 0
@@ -175,9 +181,9 @@ def recombine(Q_s, recombination_rate, recombination_weights, customers, to_fulf
                 weights=recombination_weights,
                 k=1
             )[0]
-            children = recombination(parent1, parent2, customers, to_fulfilled)
+            children = recombination(parent1, parent2, customers, to_fulfilled, rho, samples)
             if len(children) == 1:
-                children.extend(recombination(parent2, parent1, customers, to_fulfilled))
+                children.extend(recombination(parent2, parent1, customers, to_fulfilled, rho, samples))
         else:
             children = [copy.deepcopy(parent1), copy.deepcopy(parent2)]
 
@@ -202,16 +208,14 @@ def get_order_from_parent(parent, customers):
                         order.append(c)
     return order
 
-def customer_based_recombination(parent1, parent2, customers, to_fulfilled):
+def customer_based_recombination(parent1, parent2, customers, to_fulfilled, rho, samples):
     child = copy.deepcopy(parent1)
 
-    # 1. Choose customers to KEEP from parent1
     keep = set()
     for c in customers:
-        if random.random() < 0.9:
+        if random.random() < 0.8:
             keep.add(c)
 
-    # 2. Remove all others from child
     for c in customers:
         if c not in keep:
             v = find_vehicle(child.solution, c.pickup)
@@ -219,30 +223,28 @@ def customer_based_recombination(parent1, parent2, customers, to_fulfilled):
                 v.remove_section_path(c.pickup)
                 v.remove_section_path(c.dropoff)
 
-    # 3. Get missing customers in relative order from parent2
     order = get_order_from_parent(parent2, customers)
     missing = [c for c in order if c not in keep]
 
-    # 4. Insert missing customers in that order
     for customer in missing:
-        # simple version: still your shortest-route logic
-        shortest_path = None
-        shortest_vehicle = None
-        for vehicle in child.solution:
-            if shortest_path is None or shortest_path > vehicle.path_length:
-                shortest_path = vehicle.path_length
-                shortest_vehicle = vehicle
+        vehicle = find_vehicle(parent2.solution, customer.pickup)
+        if vehicle is None:
+            shortest_path = None
+            shortest_vehicle = None
+            for vehicle in child.solution:
+                if shortest_path is None or shortest_path > vehicle.path_length:
+                    shortest_path = vehicle.path_length
+                    shortest_vehicle = vehicle
+            stochastic_insertion(child.solution, shortest_vehicle, customer, rho, customers, samples)
 
-        shortest_vehicle.add_section_path_before(shortest_vehicle.path[-1], customer.pickup)
-        shortest_vehicle.add_section_path_before(shortest_vehicle.path[-1], customer.dropoff)
-        reorder_paths(child.solution, len(customers))
+        else:
+            stochastic_insertion(child.solution, child.solution[vehicle.index], customer, rho, customers, samples)
 
-    # 5. Final repair
-    repair_child(child.solution, parent1.solution, parent2.solution, customers, to_fulfilled)
+    repair_child(child.solution, parent1.solution, parent2.solution, customers, to_fulfilled, rho, samples)
 
     return [child]
 
-def vehicle_based_recombination(parent1, parent2, customers, to_fulfilled):
+def vehicle_based_recombination(parent1, parent2, customers, to_fulfilled, rho, samples):
     child1 = copy.deepcopy(parent1)
     child2 = copy.deepcopy(parent2)
 
@@ -253,15 +255,79 @@ def vehicle_based_recombination(parent1, parent2, customers, to_fulfilled):
 
     for k in range(len(child1.solution)):
         if random.random() < 0.5:
-            # swap the corresponding vehicles
             child1.solution[k], child2.solution[k] = child2.solution[k], child1.solution[k]
 
-    repair_child(child1.solution, parent1.solution, parent2.solution, customers, to_fulfilled)
-    repair_child(child2.solution, parent1.solution, parent2.solution, customers, to_fulfilled)
+    repair_child(child1.solution, parent1.solution, parent2.solution, customers, to_fulfilled, rho, samples)
+    repair_child(child2.solution, parent1.solution, parent2.solution, customers, to_fulfilled, rho, samples)
 
     return [child1, child2]
 
-def repair_child(child, parent1, parent2, customers, to_fulfilled):
+def stochastic_insertion(solution, destination_vehicle, customer, rho, customers, samples):
+    tracker = ObjectiveTracker(solution, rho)
+    path = destination_vehicle.path
+    n = len(path)
+
+    if n < 2:
+        return
+
+    best_list = []
+    tried = set()
+
+    attempts = 0
+    max_attempts = samples * 5
+
+    while len(best_list) < samples and attempts < max_attempts:
+        attempts += 1
+
+        i = random.randrange(0, n-1)
+        j = random.randrange(i+1, n)
+
+        if (i, j) in tried:
+            continue
+        tried.add((i, j))
+
+        _, new_len = predict_new_path_lengths_after_move(
+            None,
+            destination_vehicle,
+            customer,
+            path[i],
+            path[j]
+        )
+
+        obj = tracker.predict_objective(
+            [destination_vehicle.path_length],
+            [new_len]
+        )
+
+        candidate = [destination_vehicle, customer, i, j, obj]
+
+        inserted = False
+        for idx in range(len(best_list)):
+            if obj < best_list[idx][-1]:
+                best_list.insert(idx, candidate)
+                inserted = True
+                break
+        if not inserted:
+            best_list.append(candidate)
+
+        if len(best_list) > samples:
+            best_list.pop()
+
+    best_list = list(reversed(best_list))
+
+    while best_list:
+        destination_vehicle, customer, i, j, _ = best_list.pop()
+        perform_move(None, destination_vehicle, customer, path[i], path[j])
+        if is_valid(destination_vehicle):
+            return
+        destination_vehicle.remove_section_path(customer.pickup)
+        destination_vehicle.remove_section_path(customer.dropoff)
+
+    destination_vehicle.add_section_path_before(destination_vehicle.path[-1], customer.pickup)
+    destination_vehicle.add_section_path_before(destination_vehicle.path[-1], customer.dropoff)
+    reorder_paths(solution, len(customers))
+
+def repair_child(child, parent1, parent2, customers, to_fulfilled, rho, samples):
 
     for customer in customers:
         customer_counter = 0
@@ -293,7 +359,7 @@ def repair_child(child, parent1, parent2, customers, to_fulfilled):
         if find_vehicle(child, customer.pickup) is None:
             unfulfilled.append(customer)
 
-    while not is_solution_valid(child, to_fulfilled) and i < to_fulfilled:
+    while not is_solution_valid(child, to_fulfilled) and i < to_fulfilled and len(unfulfilled) > 0:
         i = i + 1
         customer = random.choice(unfulfilled)
         unfulfilled.remove(customer)
@@ -304,9 +370,7 @@ def repair_child(child, parent1, parent2, customers, to_fulfilled):
                 shortest_path = vehicle.path_length
                 shortest_vehicle = vehicle
 
-        shortest_vehicle.add_section_path_before(shortest_vehicle.path[-1], customer.pickup)
-        shortest_vehicle.add_section_path_before(shortest_vehicle.path[-1], customer.dropoff)
-        reorder_paths(child, len(customers))
+        stochastic_insertion(child, shortest_vehicle, customer, rho, customers, samples)
 
 
 

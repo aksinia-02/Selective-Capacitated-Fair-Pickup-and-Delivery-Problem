@@ -133,11 +133,12 @@ def predict_new_path_lengths_after_move(vehicle, destination_vehicle, customer, 
     pickup_pred: the predecessor of the pickup point
     dropoff_pred: the predecessor of the dropoff point
     """
-
-    vehicle_path_length = vehicle.path_length
-    path = vehicle.path
-    path, vehicle_path_length = vehicle.predict_path_after_remove(customer.pickup, path, vehicle_path_length)
-    path, vehicle_path_length = vehicle.predict_path_after_remove(customer.dropoff, path, vehicle_path_length)
+    vehicle_path_length = None
+    if vehicle is not None:
+        vehicle_path_length = vehicle.path_length
+        path = vehicle.path
+        path, vehicle_path_length = vehicle.predict_path_after_remove(customer.pickup, path, vehicle_path_length)
+        path, vehicle_path_length = vehicle.predict_path_after_remove(customer.dropoff, path, vehicle_path_length)
 
     destination_vehicle_path_length = destination_vehicle.path_length
     path = destination_vehicle.path
