@@ -68,10 +68,15 @@ def find_vehicle(solution, node):
     return None
 
 
-def is_valid(vehicle):
+def is_valid(vehicle, customers=None):
     """
     checks whether a vehicle is valid.
     """
+    if customers is not None:
+        for c in customers:
+            if c.pickup in vehicle.path and c.dropoff in vehicle.path:
+                if vehicle.path.index(c.pickup) > vehicle.path.index(c.dropoff):
+                    return False
 
     for load in vehicle.load_history:
         if load > vehicle.capacity:

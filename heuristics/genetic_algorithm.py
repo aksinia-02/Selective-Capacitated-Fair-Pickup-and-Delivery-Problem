@@ -12,8 +12,7 @@ from heuristics.neighborhood_structures.exchange_neighborhood import perform_exc
 from heuristics.neighborhood_structures.move_neighborhood import perform_move
 from heuristics.neighborhood_structures.neighborhood_core import choose_neighbor
 
-def solve(customers, vehicles, to_fulfilled, rho, t_max=100, population_size=10, s=1.5, selection_method="roulette-wheel", tournament_size=3, tournament_replace=True, recombination_weights=None, mutation_weights=None, num_elites=0, recombination_samples=200, recombination_rate=0.8, mutation_rate=0.1, output_statistic=False):
-
+def solve(customers, vehicles, to_fulfilled, rho, t_max=80, population_size=20, s=1.3968, selection_method="tournament", tournament_size=18, tournament_replace=True, recombination_weights=None, mutation_weights=None, num_elites=0, recombination_samples=125, recombination_rate=0.4202, mutation_rate=0.5943, output_statistic=False):
     if s < 1 or s > 2:
         raise ValueError(f"s must be between 1 and 2: {s}")
     if num_elites > population_size or num_elites < 0:
@@ -27,28 +26,18 @@ def solve(customers, vehicles, to_fulfilled, rho, t_max=100, population_size=10,
     if mutation_rate < 0 or mutation_rate > 1:
         raise ValueError(f"mutation_rate must be between 0 and 1: {mutation_rate}")
     if recombination_weights is None:
-        recombination_weights = [0.5,0.5]
+        recombination_weights = [0.9446, 0.4373]
     else:
         if len(recombination_weights) != len(RECOMBINATION_METHODS):
             raise ValueError(
                 f"Expected exactly {len(RECOMBINATION_METHODS)} recombination weights, got {len(recombination_weights)}"
             )
-        total = sum(recombination_weights)
-        if abs(total - 1.0) > 0:
-            raise ValueError(
-                f"Recombination weights must sum to 1.0, got {total}"
-            )
     if mutation_weights is None:
-        mutation_weights = [0.25,0.25,0.5]
+        mutation_weights = [0.0919,0.5, 0.1860]
     else:
         if len(mutation_weights) != len(MUTATION_METHODS):
             raise ValueError(
                 f"Expected exactly {len(MUTATION_METHODS)} mutation weights, got {len(mutation_weights)}"
-            )
-        total = sum(mutation_weights)
-        if abs(total - 1.0) > 0:
-            raise ValueError(
-                f"Mutation weights must sum to 1.0, got {total}"
             )
 
     t = 0
@@ -77,6 +66,7 @@ def solve(customers, vehicles, to_fulfilled, rho, t_max=100, population_size=10,
     if output_statistic:
         return best.solution, statistic
     else:
+        print(best.solution)
         return best.solution
 
 
@@ -111,11 +101,32 @@ def evaluate(population, rho, s):
 
 def initialize(customers, vehicles, to_fulfilled, rho, population_size):
     new_population = []
-    for i in range(population_size):
+
+    for _ in range(population_size):
         individual = Individual.Individual()
-        individual.solution = randomized_construction.solve(customers, copy.deepcopy(vehicles), to_fulfilled, rho, strategy="with_reordering", alpha=1)
+
+        solution = copy.deepcopy(vehicles)
+
+        for v in solution:
+            depot = v.path[0]
+            v.path = [depot, depot]
+            v.path_length = 0
+            v.load = 0
+            v.load_history = [0, 0]
+
+        for customer in customers:
+            v = random.choice(solution)
+            v.add_section_path_before(v.path[-1], copy.deepcopy(customer.pickup))
+            v.add_section_path_before(v.path[-1], copy.deepcopy(customer.dropoff))
+
+        for i, v in enumerate(solution):
+            v.index = i
+
+        individual.solution = solution
         new_population.append(individual)
+
     return new_population
+
 
 
 def best_individual(population):
@@ -263,12 +274,18 @@ def vehicle_based_recombination(parent1, parent2, customers, to_fulfilled, rho, 
     return [child1, child2]
 
 def stochastic_insertion(solution, destination_vehicle, customer, rho, customers, samples):
-    tracker = ObjectiveTracker(solution, rho)
     path = destination_vehicle.path
     n = len(path)
 
     if n < 2:
         return
+
+    if n == 2:
+        destination_vehicle.add_section_path_before(destination_vehicle.path[-1], customer.pickup)
+        destination_vehicle.add_section_path_before(destination_vehicle.path[-1], customer.dropoff)
+        return
+
+    tracker = ObjectiveTracker(solution, rho)
 
     best_list = []
     tried = set()
@@ -318,7 +335,7 @@ def stochastic_insertion(solution, destination_vehicle, customer, rho, customers
     while best_list:
         destination_vehicle, customer, i, j, _ = best_list.pop()
         perform_move(None, destination_vehicle, customer, path[i], path[j])
-        if is_valid(destination_vehicle):
+        if is_valid(destination_vehicle, customers):
             return
         destination_vehicle.remove_section_path(customer.pickup)
         destination_vehicle.remove_section_path(customer.dropoff)
@@ -359,7 +376,7 @@ def repair_child(child, parent1, parent2, customers, to_fulfilled, rho, samples)
         if find_vehicle(child, customer.pickup) is None:
             unfulfilled.append(customer)
 
-    while not is_solution_valid(child, to_fulfilled) and i < to_fulfilled and len(unfulfilled) > 0:
+    while not is_solution_valid(child, to_fulfilled) and i < to_fulfilled:
         i = i + 1
         customer = random.choice(unfulfilled)
         unfulfilled.remove(customer)
@@ -369,8 +386,8 @@ def repair_child(child, parent1, parent2, customers, to_fulfilled, rho, samples)
             if shortest_path is None or shortest_path > vehicle.path_length:
                 shortest_path = vehicle.path_length
                 shortest_vehicle = vehicle
-
         stochastic_insertion(child, shortest_vehicle, customer, rho, customers, samples)
+
 
 
 
@@ -403,8 +420,8 @@ def swap_mutation(individual, customers, _to_fulfilled, _rho, max_attempts=5):
             continue
         perform_exchange(first_v, second_v, first, second)
 
-        if (first_v is None or is_valid(first_v)) and \
-           (second_v is None or is_valid(second_v)):
+        if (first_v is None or is_valid(first_v, customers)) and \
+           (second_v is None or is_valid(second_v, customers)):
 
             new_individual = copy.deepcopy(individual)
             new_individual.solution = mutated_solution
@@ -449,7 +466,7 @@ def move_mutation(individual, customers, _to_fulfilled, _rho, max_attempts=5):
             target_vehicle.path[j]
         )
 
-        if is_valid(vehicle) and is_valid(target_vehicle):
+        if is_valid(vehicle, customers) and is_valid(target_vehicle, customers):
             new_individual = copy.deepcopy(individual)
             new_individual.solution = mutated_solution
             return new_individual

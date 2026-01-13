@@ -1,0 +1,7 @@
+trainInstancesDir = "instances_50"
+targetRunner = "runner_50.bat"
+maxExperiments = 300
+confidence = 0.95
+seed = 123
+logFile = "irace_50.Rdata"
+parallel = 1

@@ -92,10 +92,11 @@ class Vehicle:
             self.path.insert(start_index + 1, new_location)
 
             # update load history on path
-            new_load = self.load_history[start_index] + new_location.goods
-            self.load_history.insert(start_index + 1, new_load)
-            for i in range(start_index + 2, len(self.load_history)):
-                self.load_history[i] += new_location.goods
+            load = 0
+            self.load_history = []
+            for p in self.path:
+                load += p.goods
+                self.load_history.append(load)
 
             # update load on current position
             current_index = self.path.index(self.position)

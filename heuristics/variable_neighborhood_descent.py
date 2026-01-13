@@ -5,7 +5,7 @@ from heuristics.neighborhood_structures.neighborhood_core import choose_neighbor
 from tools import *
 from heuristics import construction
 
-def solve(customers, initial_solution, to_fulfilled, rho, neighborhood_structures=None, improvement_strategy="best", output_statistic=False):
+def solve(customers, initial_solution, to_fulfilled, rho, neighborhood_structures=None, improvement_strategy="first", output_statistic=False):
     """
     This function solves the heuristic problem using variable neighborhood descent.
 
