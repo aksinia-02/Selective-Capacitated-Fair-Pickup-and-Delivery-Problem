@@ -1,9 +1,9 @@
 library(irace)
 
-scenario <- readScenario("scenario_50.txt")
+#scenario <- readScenario("scenario_50.txt")
 parameters <- readParameters("parameters.txt")
 
-irace(scenario = scenario)
+#irace(scenario = scenario)
 
 scenario <- readScenario("scenario_100.txt")
 

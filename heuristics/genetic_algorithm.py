@@ -12,12 +12,12 @@ from heuristics.neighborhood_structures.exchange_neighborhood import perform_exc
 from heuristics.neighborhood_structures.move_neighborhood import perform_move
 from heuristics.neighborhood_structures.neighborhood_core import choose_neighbor
 
-def solve(customers, vehicles, to_fulfilled, rho, t_max=80, population_size=20, s=1.3968, selection_method="tournament", tournament_size=18, tournament_replace=True, recombination_weights=None, mutation_weights=None, num_elites=0, recombination_samples=125, recombination_rate=0.4202, mutation_rate=0.5943, output_statistic=False):
+def solve(customers, vehicles, to_fulfilled, rho, t_max=50, population_size=87, s=1.0685, selection_method="tournament", tournament_size=33, tournament_replace=False, recombination_weights=None, mutation_weights=None, num_elites=9, recombination_samples=100, recombination_rate=0.8, mutation_rate=0.2754, output_statistic=False):
     if s < 1 or s > 2:
         raise ValueError(f"s must be between 1 and 2: {s}")
     if num_elites > population_size or num_elites < 0:
         raise ValueError(f"num_elites must be between 0 and population_size ({population_size}): {num_elites}")
-    if tournament_size > population_size or tournament_size < 0:
+    if tournament_size > population_size or tournament_size <= 0:
         raise ValueError(f"tournament_size must be between 0 and population_size ({population_size}): {tournament_size}")
     if recombination_samples < 10 or recombination_samples > 1000:
         raise ValueError(f"recombination_samples must be between 10 and 1000: {recombination_samples}")
@@ -26,14 +26,14 @@ def solve(customers, vehicles, to_fulfilled, rho, t_max=80, population_size=20, 
     if mutation_rate < 0 or mutation_rate > 1:
         raise ValueError(f"mutation_rate must be between 0 and 1: {mutation_rate}")
     if recombination_weights is None:
-        recombination_weights = [0.9446, 0.4373]
+        recombination_weights = [0.3657, 0.0831]
     else:
         if len(recombination_weights) != len(RECOMBINATION_METHODS):
             raise ValueError(
                 f"Expected exactly {len(RECOMBINATION_METHODS)} recombination weights, got {len(recombination_weights)}"
             )
     if mutation_weights is None:
-        mutation_weights = [0.0919,0.5, 0.1860]
+        mutation_weights = [ 0.5052, 0.5, 0.5]
     else:
         if len(mutation_weights) != len(MUTATION_METHODS):
             raise ValueError(
@@ -67,6 +67,8 @@ def solve(customers, vehicles, to_fulfilled, rho, t_max=80, population_size=20, 
         return best.solution, statistic
     else:
         print(best.solution)
+        print(best.solution[0].load_history)
+        print(best.solution[1].load_history)
         return best.solution
 
 
@@ -116,8 +118,8 @@ def initialize(customers, vehicles, to_fulfilled, rho, population_size):
 
         for customer in customers:
             v = random.choice(solution)
-            v.add_section_path_before(v.path[-1], copy.deepcopy(customer.pickup))
-            v.add_section_path_before(v.path[-1], copy.deepcopy(customer.dropoff))
+            v.add_section_path_before(v.path[-1], customer.pickup)
+            v.add_section_path_after(customer.pickup, customer.dropoff)
 
         for i, v in enumerate(solution):
             v.index = i
@@ -282,7 +284,7 @@ def stochastic_insertion(solution, destination_vehicle, customer, rho, customers
 
     if n == 2:
         destination_vehicle.add_section_path_before(destination_vehicle.path[-1], customer.pickup)
-        destination_vehicle.add_section_path_before(destination_vehicle.path[-1], customer.dropoff)
+        destination_vehicle.add_section_path_after(customer.pickup, customer.dropoff)
         return
 
     tracker = ObjectiveTracker(solution, rho)
@@ -341,7 +343,7 @@ def stochastic_insertion(solution, destination_vehicle, customer, rho, customers
         destination_vehicle.remove_section_path(customer.dropoff)
 
     destination_vehicle.add_section_path_before(destination_vehicle.path[-1], customer.pickup)
-    destination_vehicle.add_section_path_before(destination_vehicle.path[-1], customer.dropoff)
+    destination_vehicle.add_section_path_after(customer.pickup, customer.dropoff)
     reorder_paths(solution, len(customers))
 
 def repair_child(child, parent1, parent2, customers, to_fulfilled, rho, samples):
@@ -378,6 +380,11 @@ def repair_child(child, parent1, parent2, customers, to_fulfilled, rho, samples)
 
     while not is_solution_valid(child, to_fulfilled) and i < to_fulfilled:
         i = i + 1
+        if len(unfulfilled) == 0:
+            for i in range(len(child)):
+                child[i] = copy.deepcopy(parent1[i])
+            return
+
         customer = random.choice(unfulfilled)
         unfulfilled.remove(customer)
         shortest_path = None
