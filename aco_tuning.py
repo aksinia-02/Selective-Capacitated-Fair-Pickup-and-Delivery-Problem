@@ -37,6 +37,10 @@ def build_aco_parameter_space():
         np.arange(0.5, 3.1, 0.5), # alpha
         np.arange(2.0, 4.1, 1.0), # beta
         np.arange(0.02, 0.21, 0.04)  # evaporation
+        # [5],          # n_colonies
+        # np.arange(1, 3.1, 1.5), # alpha
+        # np.arange(1.0, 4.1, 3), # beta
+        # np.arange(0.02, 0.21, 0.2)  # evaporation
     ))
 
 def evaluate_cfg_on_instance(cfg, instance_path, runs=2):
@@ -87,6 +91,7 @@ def eliminate_by_wilcoxon(results, surviving, alpha):
             continue
 
         # Bonferroni correction
+        print(f"p_value: {p_value}")
         if p_value >= alpha / m:
             still_surviving.append(cfg)
 
@@ -104,12 +109,10 @@ def aco_race_instances(configs, instance_paths, runs=2, alpha=0.05):
             value = evaluate_cfg_on_instance(cfg, instance, runs)
             results[cfg].append(value)
 
-        if len(results[surviving[0]]) < 2:
+        if len(results[surviving[0]]) <= 2:
             continue
 
-        stat, p_value = friedmanchisquare(
-            *[results[cfg] for cfg in surviving]
-        )
+        stat, p_value = friedmanchisquare( *[results[cfg] for cfg in surviving])
 
         if p_value < alpha:
             prev = len(surviving)
