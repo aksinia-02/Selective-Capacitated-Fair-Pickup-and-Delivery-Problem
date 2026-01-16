@@ -1,4 +1,4 @@
-t_max               ""  i (1,150)
+t_max               ""  i (1,200)
 population_size     ""  i (5,100)
 s                   ""  r (1,2)
 
@@ -14,7 +14,7 @@ mut_w2    "" r (0,1)
 mut_w3    "" r (0,1)
 
 num_elites           ""  i (0,100)
-recombination_samples "" i (10,150)
+recombination_samples "" i (10,200)
 
 recombination_rate    "" r (0,1)
 mutation_rate        ""  r (0,1)

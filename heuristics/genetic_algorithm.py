@@ -1,4 +1,5 @@
 import random
+import time
 
 from classes.ObjectiveTracker import ObjectiveTracker
 from classes.Statistic import Statistic
@@ -41,12 +42,18 @@ def solve(customers, vehicles, to_fulfilled, rho, t_max=50, population_size=87, 
             )
 
     t = 0
+    start_time = time.time()
+    time_limit = 10 * 60
     current_population = initialize(customers, vehicles, to_fulfilled, rho, population_size)
     evaluate(current_population, rho, s)
     best = best_individual(current_population)
     statistic = Statistic(best.solution, rho)
 
     while t < t_max:
+        elapsed_time = time.time() - start_time
+        if elapsed_time > time_limit:
+            print(f"Time limit reached! Exiting at iteration {t}")
+            break
         print("iteration: ", t)
         t += 1
         Q_s = select(current_population, selection_method, num_elites, tournament_size, tournament_replace)
@@ -116,7 +123,7 @@ def initialize(customers, vehicles, to_fulfilled, rho, population_size):
             v.load = 0
             v.load_history = [0, 0]
 
-        for customer in customers:
+        for customer in random.sample(customers, k=len(customers)):
             v = random.choice(solution)
             v.add_section_path_before(v.path[-1], customer.pickup)
             v.add_section_path_after(customer.pickup, customer.dropoff)

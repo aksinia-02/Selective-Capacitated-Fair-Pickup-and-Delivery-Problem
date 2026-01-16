@@ -107,7 +107,48 @@ def process_for_statistic(heuristic_type, input_file, output_path, neighborhood,
         if neighborhood is not None:
             result, statistic = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fulfilled, rho, neighborhood, output_statistic=True)
         else:
-            result, statistic = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fulfilled, rho, output_statistic=True)
+            if heuristic_type == "ga" and len(customers) == 50:
+                result, statistic = switcher.get(heuristic_type, lambda: "unknown")(
+                                        customers,
+                                        vehicles,
+                                        to_fulfilled,
+                                        rho,
+                                        t_max=170,
+                                        population_size=62,
+                                        s=1.0625,
+                                        selection_method="tournament",
+                                        tournament_size=62,
+                                        tournament_replace=False,
+                                        recombination_weights=[0.7411, 0.1901],
+                                        mutation_weights=[0.3749, 0.3587, 0.4831],
+                                        num_elites=24,
+                                        recombination_samples=176,
+                                        recombination_rate=0.4257,
+                                        mutation_rate=0.1647,
+                                        output_statistic=True
+                                    )
+                print("50")
+            elif heuristic_type == "ga" and len(customers) == 100:
+                result, statistic = switcher.get(heuristic_type, lambda: "unknown")(
+                                        customers,
+                                        vehicles,
+                                        to_fulfilled,
+                                        rho,
+                                        t_max=134,
+                                        population_size=76,
+                                        s=1.5719,
+                                        selection_method="tournament",
+                                        tournament_size=35,
+                                        tournament_replace=False,
+                                        recombination_weights=[0.7883, 0.4033],
+                                        mutation_weights=[0.7198, 0.5541, 0.537],
+                                        num_elites=32,
+                                        recombination_samples=10,
+                                        recombination_rate=0.9743,
+                                        mutation_rate=0.4273, output_statistic=True)
+                print("100")
+            else:
+                result, statistic = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fulfilled, rho, output_statistic=True)
 
 
     end_time = time.time()

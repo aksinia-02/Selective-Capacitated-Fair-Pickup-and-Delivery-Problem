@@ -34,3 +34,7 @@ plot(fes[ok], values[ok], type = "s",
 points(fes[ok], values[ok], pch = 19)
 arrows(fes[ok], low[ok], fes[ok], high[ok], length = 0.05, angle = 90, code = 3)
 text(fes[ok], values[ok], elites[ok], pos = 1)
+
+best_config <- getFinalElites(iraceResults, n = 1)
+best_id <- as.character(best_config$.ID.)
+getConfigurationById(iraceResults, ids = best_id)

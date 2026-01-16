@@ -1,0 +1,466 @@
+\documentclass[12pt]{article}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+% For subfigure environments
+\usepackage{subcaption}
+\usepackage[framemethod=tikz]{mdframed}
+\usepackage{booktabs}
+
+% Optional: for [H] specifier
+\usepackage{float}
+
+\graphicspath{ {./images/} }
+
+
+\title{\vspace{2cm}
+    \Huge \textbf{Heuristic Optimization Techniques}\\[2cm]
+    \LARGE Report 2
+    \vspace{10cm}
+    
+    \large Aksinia Vorobeva, 12044614  \\ Marcel Korinek, 12220824
+    }
+
+\begin{document}
+
+\maketitle
+
+
+\pagebreak
+
+\section{Problem Description}
+\begin{mdframed}[
+    linecolor=black,
+    linewidth=1.5pt,
+    roundcorner=5pt,
+    backgroundcolor=blue!5,
+    userdefinedwidth=\textwidth,
+]
+\textbf{Selective Capacitated Fair Pickup and Delivery Problem (SCF-PDP)}
+
+\vspace{0.7em}
+\textbf{Graph model:}  
+Complete directed graph $G = (V, A)$, where:
+\begin{itemize}
+    \item $V$ contains the depot as well as all pickup and drop-off locations.
+    \item $A = \{(u,v) : u, v \in V, u \neq v\}$ represents travel arcs.
+    \item Each arc $(u,v)$ has an associated distance  
+    \[
+        a_{u,v} = \left\lceil \sqrt{(x_u - x_v)^2 + (y_u - y_v)^2} \right\rceil,
+    \]
+    where $(x_u, y_u)$ are the coordinates of location $u$.
+\end{itemize}
+
+\vspace{0.5em}
+\textbf{n Customer requests:}   
+For each request $i \in \{1, \dots, n\}$ there are:
+\[
+v_i^{\uparrow} \in V \quad \text{(pickup location)}, \qquad
+v_i^{\downarrow} \in V \quad \text{(drop-off location)}.
+\]
+
+The solution must serve at least $\gamma \le n$ of them.
+
+\vspace{0.5em}
+\textbf{Vehicles:}  
+A fleet $K$ of $n_K$ identical vehicles is available, each with capacity $C$ and starting/ending at the depot.
+
+\vspace{0.7em}
+\textbf{Feasible solution:}  
+A solution consists of a route $R_k$ for each vehicle $k \in K$, where $R_{k,i}$ denotes the $i$-th stop. Each solution must satisfy:
+\begin{itemize}
+    \item Vehicle load never exceeds capacity $C$
+    \item Each served request is fully handled by a single vehicle
+    \item At least $\gamma$ requests are served in total
+\end{itemize}
+
+The travel duration of route $R_k$ is
+\[
+d(R_k)
+= a_{\text{depot}, R_{k,1}}
++ a_{R_{k,|R_k|}, \text{depot}}
++ \sum_{(u,v)\in R_k} a_{u,v}.
+\]
+
+\vspace{0.5em}
+\textbf{Fairness measure:}  
+We use the Jain fairness index:
+\[
+J(R)
+=
+\frac{\left(\sum_{k \in K} d(R_k)\right)^2}
+{\,n_K \cdot \sum_{k \in K} d(R_k)^2\, }.
+\]
+
+\vspace{0.7em}
+\textbf{Objective:}  
+Minimize the total travel duration penalized by unfairness:
+\[
+\sum_{k \in K} d(R_k)
+\;+\;
+\rho \cdot (1 - J(R)),
+\]
+where $\rho$ controls the trade-off between efficiency and fairness.
+
+\end{mdframed}
+
+\subsection{Experimental Setup}
+
+The experiments of instances with 50 customers for SA algorithm with different cooling strategies we made on machine with a AMD Ryzen 5 3500U and 8 RAM, running Windows 10 and Python 3.13.9. 
+
+All other experiments were made on a machine with a AMD Ryzen 7 9800X3D and 32 RAM, running Windows 11 and Python 3.13.9.
+
+We tested every algortihm on all of the instances with size 50 and 100. For every non-deterministic algorithm we made at least three runs in order to increase the significance of the results.
+
+For each experiment, the relevant algorithm configurations are provided in the corresponding chapter.
+
+\section{Description of Algorithms}
+
+Every algorithm shares five input parameters: \emph{customers}, \emph{vehicles}, \emph{to$\_$fulfilled}, \emph{rho} and \emph{output$\_$statistic}. 
+
+\vspace{0.6em}
+\textbf{Customers.}
+
+The input parameter \emph{customers} is a list of \texttt{Customer} objects, each customer contains the relevant information for each request:
+
+\begin{itemize}
+    \item a unique identifier
+    \item a pickup location and a drop-off location, both represented as \texttt{Point} objects
+    \item the amount of goods to be transported
+\end{itemize}
+
+A \texttt{Point} object contains the coordinates, the point type (depot, pickup, drop-off),
+and the quantity of goods associated with it (if the point type is pickup, then  the quantity of goods is positive for pickups, if it is drop-off, then the quantity is negative).
+
+\vspace{0.6em}
+\textbf{Vehicles.}
+
+The most important parameter is \emph{vehicles}, which is also our choice of a solution representation for this problem. It is a list of \texttt{Vehicle} objects.
+Each vehicle maintains the following:
+\begin{itemize}
+    \item its capacity
+    \item its current load and position
+    \item its route, stored as a sequence of \texttt{Point} objects
+    \item its accumulated path length
+    \item a load-history tracing the load after each visited point
+\end{itemize}
+Together, the set of vehicles encodes the full multi-vehicle our routing solution, including which requests are served and in what order.
+
+\vspace{0.6em}
+\textbf{Minimum Requests to Serve.}
+
+The parameter \emph{to\_fulfill} describes the minimum number of requests to
+be served.
+
+\vspace{0.6em}
+\textbf{Fairness Weight \boldmath$\rho$.}
+
+The parameter \emph{rho} is the fairness weight in the objective function.
+It is passed to the \texttt{ObjectiveTracker}, which evaluates
+\[
+\text{Objective}
+=
+\sum_{k} d(R_k)
+\;+\;
+\rho \cdot (1 - J(R)),
+\]
+and updates values efficiently using delta evaluation.
+
+\vspace{0.6em}
+\textbf{Output Statistics.}
+
+The parameter \texttt{output\_statistic} is irrelevant for the functionality of the algorithms, as it is only relevant for the experimental evaluation and result analysis. We save the collection of detailed performance data using the \texttt{Statistic} class,
+including:
+\begin{itemize}
+    \item the objective value over time
+    \item fairness values over time
+    \item total route duration over time
+    \item the number of iterations performed
+\end{itemize}
+
+\vspace{1em}
+\textbf{Algorithm output.}
+
+Ultimately, at the end of the algorithm, we receive:
+
+\begin{itemize}
+    \item a file in .txt format with the final solution to the problem
+    \item statistical data
+    \item a graphical representation of the solution (see Figure~\ref{fig:graph_rep_sa})
+\end{itemize}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{graphics/output_1.png}
+    \caption{Graphical representation of SA output}
+    \label{fig:graph_rep_sa}
+\end{figure}
+
+\subsection{Genetic Algorithm}
+
+
+The proposed solution method is based on a Genetic Algorithm (GA), an evolutionary metaheuristic that iteratively improves a population of candidate solutions through biologically inspired operators. 
+
+\bigskip
+
+The Genetic Algorithm is controlled by a set of problem-specific and algorithmic parameters, summarized below.
+
+\begin{itemize}
+    \item \textbf{customers}: List of all \texttt{Customer} objects.
+    \item \textbf{vehicles}: List of a given number of empty \texttt{Vehicle} objects.
+    \item \textbf{to\_fulfilled}: Minimum number of customer requests that must be fulfilled.
+    \item \textbf{rho}: Fairness weight.
+    \item \textbf{s}: Selection pressure.
+    \item \textbf{t\_max}: Maximum number of generations (iterations).
+    \item \textbf{population\_size}: Number of individuals in the population.
+    \item \textbf{num\_elites}: Number of elite individuals preserved during replacement.
+    \item \textbf{selection\_method}: Parent selection strategy.
+    \item \textbf{tournament\_size}: Number of individuals competing in each tournament (only relevant if tournament selection is the chosen selection method).
+    \item \textbf{tournament\_replace}: Sets whether an individual can be chosen multiple times for a tournament (only relevant if tournament selection is the chosen selection method).
+    \item \textbf{recombination\_rate}: Probability of applying crossover to a selected pair.
+    \item \textbf{recombination\_weights}: Operator-specific weights.
+    \item \textbf{recombination\_samples}: Number of tries to insert a pickup point and a dropoff point randomly in a vehicle path (relevant for submethods of the recombination)
+    \item \textbf{mutation\_rate}: Probability of mutating an offspring.
+    \item \textbf{mutation\_weights}: Operator-specific weights.
+    \item \textbf{output\_statistic}: Boolean value indicating if the more details regarding the run should be returned.
+\end{itemize}
+
+\pagebreak
+
+
+The overall procedure consists of the following main phases:
+
+\begin{enumerate}
+    \item \textbf{Initialization}: Generation of an initial population of feasible solutions.
+    \item \textbf{Evaluation}: Computation of the objective value (fitness) for each individual.
+    \item \textbf{Selection}: Choice of parent individuals for Recombination based on their fitness.
+    \item \textbf{Recombination}: Creation of new offsprings by combining solution parts from selected parents.
+    \item \textbf{Mutation}: Random modification of offsprings to maintain diversity and explore new regions of the search space.
+    \item \textbf{Replacement}: Construction of the next generation by replacing the old population by the offsprings while potentially also preserving elite individuals.
+\end{enumerate}
+
+Steps 2 to 6 are repeated until a maximum number of iterations is reached or the algorithm exceeds a runtime of 10 minutes.
+
+
+
+Each of the phases listed above is described in detail in the subsequent chapters.
+
+\subsubsection{Initialization}
+
+Each individual of the initial population is generated using a fast constructive procedure. For every customer request, a vehicle is selected uniformly at random, and the corresponding pickup and drop-off nodes are appended to the current route of that vehicle. This procedure is computationally efficient and yields a roughly balanced initial assignment of customers across all vehicles. The resulting solutions are not necessarily of high quality. However, this is acceptable, as the primary objective of the initialization phase is to provide diverse and feasible starting points for the evolutionary search rather than near-optimal solutions.
+
+
+\subsubsection{Evaluation}
+
+The evaluation phase assigns a fitness value to each individual in the population and consists of two main steps.
+
+\paragraph{Fitness Transformation.}
+Since the considered problem is a minimization problem, while the Genetic Algorithm operates on a maximization of fitness, the objective values are first transformed accordingly. Let $c_i$ denote the objective value of individual $i$ and let
+\[
+c_{\max} = \max_{j \in P} c_j + 1
+\]
+be a constant larger than any objective value in the current population $P$. The raw fitness of individual $i$ is then computed as
+\[
+f_i = c_{\max} - c_i .
+\]
+By construction, all fitness values are strictly positive and a smaller objective value results in a larger fitness.
+
+\paragraph{Linear Scaling.}
+To control the selection pressure and avoid premature convergence, a linear scaling of the raw fitness values is applied. Let $f_{\max}$, $f_{\text{avg}}$, and $f_{\min}$ denote the maximum, average, and minimum fitness in the population, respectively. The scaled fitness $\hat{f}_i$ is obtained as
+\[
+\hat{f}_i = a f_i + b ,
+\]
+where the scaling coefficients $a$ and $b$ are chosen such that
+\[
+\hat{f}_{\text{avg}} = f_{\text{avg}}, \qquad
+\hat{f}_{\max} = s \cdot \hat{f}_{\text{avg}},
+\]
+with $s > 1$ being a user-defined scaling factor. Solving this system yields
+\[
+a = \frac{(s-1) \hat{f}_{\text{avg}}}{f_{\max} - \hat{f}_{\text{avg}}}, \qquad
+b = f_{\text{avg}} - a \hat{f}_{\text{avg}} .
+\]
+
+In order to guarantee non-negative scaled fitness values, the coefficients are further adjusted if $\hat{f}_{\min} < 0$ by enforcing $\hat{f}_{\min} = 0$. 
+In this case, the parameters are recomputed as
+\[
+a = \frac{\hat{f}_{\text{avg}}}{\hat{f}_{\text{avg}} - f_{\min}}, 
+\qquad
+b = a \hat{f}_{\text{avg}} - \hat{f}_{\text{avg}},
+\]
+
+The resulting scaled fitness values are finally used in the subsequent selection phase.
+This linear scaling mechanism preserves the ranking of individuals while regulating the difference between the best and average fitness, thereby balancing exploration and exploitation during the evolutionary search.
+
+\bigskip
+
+Right after the evaluation phase, the solution of the best individual of the recently evaluated population is compared to the best found solution so far. This ensures that at the end of the whole algorithm always the best solution of all generations is returned.
+
+
+
+\subsubsection{Selection}
+
+The selection phase determines which individuals of the current population are chosen as parents for the recombination. Individuals with higher fitness values are given a higher probability of being selected, thereby implementing the principle of survival of the fittest while still preserving stochasticity to maintain population diversity. If a number of elites is specified, this will be considered by choosing only \texttt{population\_size} - \texttt{num\_elites} parents. Two selection mechanisms are implemented: roulette-wheel selection and tournament selection.
+
+\paragraph{Roulette-Wheel Selection.}
+In roulette-wheel (fitness-proportionate) selection, each individual $i$ is assigned a selection probability proportional to its fitness value $f_i$. Let $P$ be the current population and $F = \sum_{j \in P} f_j$ the sum of all fitness values. The probability of selecting individual $i$ is given by
+\[
+p_i = \frac{f_i}{F}.
+\]
+Parents are then sampled from the population according to this discrete probability distribution. As a consequence, individuals with higher fitness are more likely to be selected, while lower-quality individuals still retain a non-zero chance of contributing to the next generation.
+
+\paragraph{Tournament Selection.}
+In tournament selection, a set of $k$ individuals (the tournament size) is drawn uniformly at random from the population, either with or without allowing duplicates (toggled by the replacement parameter). The individual with the highest fitness among the selected contenders is declared the winner of the tournament and is chosen as a parent. This procedure is repeated until the required number of parents has been selected.
+
+The tournament size $k$ directly controls the selection pressure: larger values of $k$ increase the probability that highly fit individuals are selected, while smaller values promote diversity.
+
+Both selection strategies preserve the ranking induced by the fitness values, but differ in their stochastic behavior and selection pressure. The choice between them and the tuning of their parameters significantly influence the balance between exploration and exploitation in the evolutionary process.
+
+
+\subsubsection{Recombination}
+
+The recombination phase generates new candidate solutions (offsprings) by combining structural components of two parent individuals. Let $Q_s$ denote the list of selected parents. Parents are processed sequentially in pairs. For each pair $(p_1, p_2)$, recombination is applied with probability \texttt{recombination\_rate}. If recombination is not applied, both parents are copied unchanged to the offspring population.
+
+If recombination is triggered, one recombination operator is chosen randomly from a predefined set of operators, where the probability of choosing a specific operator is controlled by the user-defined weights \texttt{recombination\_weights}. Depending on the chosen operator, either one or two children may be produced. If only one child is returned, the same operator is applied again with reversed parent roles to obtain a second offspring. If the number of selected parents is odd, the last unpaired parent is copied directly into the offspring population.
+
+
+\paragraph{Customer-Based Recombination.}
+In customer-based recombination, a child is initialized as a copy of the first parent. Then, for each customer, a decision is made independently with a fixed probability (set to $0.8$) whether the customer should be kept from the first parent. All customers that are not selected to be kept are removed from the child solution by deleting both their pickup and drop-off nodes from the corresponding vehicle route.
+
+The missing customers are reinserted according to the order induced by the second parent. For each missing customer, the algorithm first checks in which vehicle the customer appears in the second parent. If such a vehicle exists, the customer is inserted into the corresponding vehicle of the child; otherwise, the customer is assigned to the currently shortest vehicle route. In both cases, insertion is performed by a stochastic insertion heuristic that tries several random pickup and drop-off positions and keeps the most promising candidates with respect to the objective function.
+
+After all missing customers have been reinserted, a repair procedure is applied to eliminate duplicates, resolve infeasibilities, and enforce the minimum number of fulfilled requests. This operator produces exactly one child.
+
+\paragraph{Vehicle-Based Recombination.}
+In vehicle-based recombination, two children are created simultaneously. First, copies of both parents are made. The vehicle list of the first child is randomly permuted. Then, for each vehicle position $k$, the vehicles of the two children are swapped with probability $0.5$. This produces offsprings that inherit entire vehicle routes from both parents.
+
+Since this operation may create duplicate or missing customer assignments, a repair procedure is subsequently applied to both children to restore feasibility and to ensure that each customer appears at most once and that at least \texttt{to\_fulfilled} requests are served.
+
+\paragraph{Stochastic Insertion.}
+Both recombination operators rely on a stochastic insertion subroutine for placing a customer into a given vehicle route. For a customer with pickup node $p$ and drop-off node $d$, random pairs of insertion positions $(i,j)$ with $i<j$ are sampled, where $p$ is inserted after position $i$ and $d$ after position $j$. For each sampled pair, the resulting path length and its impact on the global objective function are estimated. Among all tried candidates, the best \texttt{samples} insertion positions are kept.
+
+These candidates are then tested in increasing order of predicted objective value. The first insertion that yields a valid route is accepted. If none of the candidates is feasible, a fallback strategy inserts the pickup just before the final depot and the drop-off immediately after the pickup, followed by a reordering step to restore consistency.
+
+\paragraph{Repair Procedure.}
+After recombination, offspring solutions may contain customers multiple times or may violate feasibility conditions. The repair procedure first scans all customers and removes duplicates by keeping the occurrence in the shorter vehicle route and deleting the other.
+
+If the solution already satisfies the minimum number of fulfilled requests, it is accepted. Otherwise, all currently unassigned customers are collected. While the solution is infeasible and fewer than \texttt{to\_fulfilled} insertion attempts have been made, customers are selected randomly from this set and inserted into the currently shortest route using the stochastic insertion procedure.
+
+If no unassigned customers remain but the solution is still infeasible, the entire child is reset to a copy of the first parent, ensuring that recombination never produces an unusable individual.
+
+
+\subsubsection{Mutation}
+
+The mutation phase introduces random local changes into offspring solutions in order to preserve diversity and to reduce the risk of premature convergence. Let $Q_r$ denote the population after recombination. Each individual is mutated independently with probability \texttt{mutation\_rate}. If an individual is selected for mutation, one mutation operator is drawn randomly from a predefined set, where the probability of choosing a specific operator is controlled by the user-defined weights \texttt{mutation\_weights}. If no mutation is applied, the individual is passed unchanged to the next population.
+
+\paragraph{Swap Mutation.}
+Swap mutation modifies the assignment of two randomly chosen customer requests. Two distinct customers are sampled uniformly at random. Let $v_1$ and $v_2$ denote the vehicles currently serving the first and second customer, respectively. Three cases are distinguished:
+
+\begin{itemize}
+\item If both customers are unassigned, the attempt is discarded.
+\item If exactly one customer is assigned to a vehicle, that customer is removed from its vehicle and replaced by the unassigned customer, inserting the pickup and drop-off nodes of the previously unassigned customer at the same positions.
+\item If both customers are assigned, their pickup and drop-off nodes are exchanged between the two vehicles.
+\end{itemize}
+
+After performing the exchange or replacement, all affected vehicle routes are checked for feasibility. If the modified routes are valid, the mutated individual is accepted. Otherwise, the attempt is rejected and repeated. This process is carried out up to a fixed number of attempts, after which the original individual is returned if no valid mutation could be generated.
+
+\paragraph{Move Mutation.}
+Move mutation relocates a single customer from its current vehicle to a different vehicle. First, a customer that is currently assigned to some vehicle is selected uniformly at random. Its current vehicle is identified, and another vehicle is chosen uniformly at random as the target.
+
+Random insertion positions for the pickup and drop-off nodes are selected in the target vehicle route, excluding the depot positions. The customer is removed from its original vehicle and inserted into the target vehicle at the chosen positions. If both modified vehicle routes are feasible after the move, the mutation is accepted. Otherwise, the attempt is rejected and repeated. As for swap mutation, only a limited number of trials is performed before reverting to the original individual.
+
+\paragraph{Neighborhood-Based Mutation.}
+Neighborhood-based mutation applies a local improvement step rather than a purely random change. One neighborhood structure is selected uniformly at random from a predefined set, including exchange, pickup relocation, drop-off relocation, remove-and-append, and move operations. Starting from the current solution, a neighboring solution is generated according to the chosen structure using a first-improvement strategy guided by the objective function and the fairness parameter $\rho$.
+
+If a strictly better neighboring solution is found, the individual is replaced by this improved solution. Otherwise, the individual remains unchanged. This operator therefore acts as an intensification mechanism that exploits the local structure of the search space.
+
+\subsubsection{Replacement}
+
+The replacement phase constructs the population of the next generation by combining elite individuals (if there are any) from the current population with the newly generated offsprings. This preserves the size of the population throughout every iteration.
+
+\bigskip
+
+After the replacement, the new population continues with the evaluation phase. 
+
+\subsubsection{Parameter Tuning}
+
+The performance of a Genetic Algorithm strongly depends on the choice of its parameters. Therefore, a systematic parameter tuning process was carried out using the automatic configuration tool \textit{irace}. Tuning was performed separately for problem instances of size 50 and 100 from the set of training instances, as these instance classes differ significantly in computational difficulty and runtime behavior.
+
+\paragraph{Tuning Setup.}
+For the instance set of size 50, the tuning scenario was defined with a maximum of 300 experiments and a confidence level of $0.95$. The tuning process executed the algorithm through a batch script, which forwarded the parameter values proposed by \textit{irace} to the main solver via the command line.
+
+Each run of the algorithm returned only the final objective value, which was used by \textit{irace} as the performance measure to be minimized.
+
+
+\paragraph{Tuned Parameters.}
+The following parameters were included in the tuning process:
+
+\begin{itemize}
+\item Number of generations $t_{\max}$
+\item Population size
+\item Selection pressure $s$
+\item Selection method (roulette-wheel or tournament)
+\item Tournament size and replacement policy
+\item Recombination operator weights
+\item Mutation operator weights
+\item Number of elite individuals
+\item Number of recombination samples
+\item Recombination rate
+\item Mutation rate
+\end{itemize}
+
+
+\paragraph{Instance-Specific Tuning.}
+Tuning was carried out independently for instances of size 50 and 100. This separation was necessary because larger instances impose stricter time limits, which changes the trade-off between population size, number of generations, and operator complexity. By tuning both instance classes separately, parameter configurations could be adapted to the different computational budgets and problem characteristics.
+
+\paragraph{Tuned Parameter Configurations.}
+These resulting configurations, shown below for each instance size, were then fixed and used for all subsequent experimental evaluations. This ensures that the reported results reflect well-calibrated algorithmic behavior rather than arbitrary parameter choices.
+
+
+
+\begin{table}[H]
+    \centering
+    \caption{Resulting GA parameter configurations for instances of size 50 and 100.}
+    \begin{tabular}{lcc}
+        \toprule
+        \textbf{Parameter} & \textbf{Size 50} & \textbf{Size 100} \\
+        \midrule
+        Number of generations, $t_{\max}$ & 170 & 134 \\
+        Population size & 62 & 76 \\
+        Selection pressure, $s$ & 1.0625 & 1.5719 \\
+        Selection method & tournament & tournament \\
+        Tournament size & 62 & 35 \\
+        Tournament replace & False & False \\
+        Recombination weights & [ 0.7411,  0.1901] & [0.7883, 0.4033] \\
+        Mutation weights & [0.3749, 0.3587, 0.4831] & [0.7198, 0.5541, 0.537] \\
+        Number of elite individuals & 24 & 32 \\
+        Recombination samples & 176 & 10 \\
+        Recombination rate & 0.4257 & 0.9743 \\
+        Mutation rate & 0.1647 & 0.4273 \\
+        \bottomrule
+    \end{tabular}
+    \label{tab:ga_parameters}
+\end{table}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\linewidth]{graphics/irace_ga_50.jpg}
+    \hfill
+    \includegraphics[width=0.48\linewidth]{graphics/irace_ga_100.jpg}
+    \caption{Graphical representation of SA output for instances of size 50 (left) and 100 (right).}
+    \label{fig:irace_convergence}
+\end{figure}
+
+Figure~\ref{fig:irace_convergence} shows how the quality of the best parameter configuration improved as the number of tuning runs increased. 
+
+\pagebreak
+
+
+
+\subsection{Ant Colony Optimization}
+
+
+
+\end{document}

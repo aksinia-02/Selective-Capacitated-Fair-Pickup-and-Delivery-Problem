@@ -4,4 +4,4 @@ maxExperiments = 300
 confidence = 0.95
 seed = 123
 logFile = "irace_100.Rdata"
-parallel = 1
+parallel = 6
