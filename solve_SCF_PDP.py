@@ -73,7 +73,7 @@ def save_results(output_path, result):
                 f.write(f"{node.index} ")
             f.write("\n")
 
-def process_for_statistic(heuristic_type, input_file, output_path, neighborhood, strategy):
+def process_for_statistic(heuristic_type, input_file, output_path, neighborhood, strategy, aco_params = None):
 
     switcher = {
         "c": construction,
@@ -107,7 +107,12 @@ def process_for_statistic(heuristic_type, input_file, output_path, neighborhood,
         if neighborhood is not None:
             result, statistic = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fulfilled, rho, neighborhood, output_statistic=True)
         else:
-            if heuristic_type == "ga" and len(customers) == 50:
+            if heuristic_type == "aco":
+                graph = create_graph(vehicles[0].position, customers)
+                print(aco_params)
+                result, statistic = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fulfilled, graph, *aco_params, rho, "jain", output_statistic=True, visualization=False)
+                # n_colonies, alpha, beta, evaporation
+            elif heuristic_type == "ga" and len(customers) == 50:
                 result, statistic = switcher.get(heuristic_type, lambda: "unknown")(
                                         customers,
                                         vehicles,
@@ -156,7 +161,8 @@ def process_for_statistic(heuristic_type, input_file, output_path, neighborhood,
 
     obj_func = round(objective_function(result, rho), 2)
 
-    save_results(output_path, result)
+    if output_path:
+        save_results(output_path, result)
 
     return obj_func, elapsed_time, statistic
 

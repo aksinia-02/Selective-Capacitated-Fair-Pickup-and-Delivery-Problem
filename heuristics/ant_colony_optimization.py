@@ -5,6 +5,7 @@ from classes.ObjectiveTracker import ObjectiveTracker
 from visualization.display_ant_colony import LiveGraph
 from classes.aco.Ant import Ant
 from classes.aco.AntColony import AntColony
+from classes.Statistic import Statistic
 
 from tools import max_min_fairness, gini_coefficient, objective_function
 
@@ -13,7 +14,12 @@ import time
 import copy
 import math
 
-def solve(customers, initial_solution, to_fulfilled, graph, n_colonies, alpha, beta, evaporation, rho, obj_name):
+def solve(
+        customers, initial_solution, to_fulfilled, graph, n_colonies, alpha, beta, 
+        evaporation, rho, obj_name, output_statistic=False, visualization=True
+    ):
+
+    statistic = Statistic()
 
     switcher = {
         "min_max": (max_min_fairness, True),
@@ -23,13 +29,14 @@ def solve(customers, initial_solution, to_fulfilled, graph, n_colonies, alpha, b
 
     func, maximize = switcher[obj_name]
 
-    visualization = LiveGraph(graph)
+    if visualization:
+        visualization = LiveGraph(graph)
     fill_world_representation(graph)
 
     global_best_colony = None
     global_max_obj = 0 if maximize else math.inf
 
-    for i in range(100):
+    for i in range(60):
         print(f"step {i}")
 
         best_colony = None
@@ -48,6 +55,7 @@ def solve(customers, initial_solution, to_fulfilled, graph, n_colonies, alpha, b
 
         if (maximize and best_obj > global_max_obj) or (not maximize and best_obj < global_max_obj):
             global_best_colony = copy.deepcopy(best_colony)
+            statistic.update(global_best_colony.solution, rho)
             global_max_obj = best_obj
             print(f"global_best_obj {best_obj} is found!")
 
@@ -55,17 +63,20 @@ def solve(customers, initial_solution, to_fulfilled, graph, n_colonies, alpha, b
         global_max_tau = max(graph[u][v]["scent"] for u, v in graph.edges())
         update_edge_colors(graph, tau_min=1e-4, tau_max=global_max_tau)
 
-        visualization.handle_events()
-        visualization.render(graph)
-        time.sleep(0.05)
+        if visualization:
+            visualization.handle_events()
+            visualization.render(graph)
+            time.sleep(0.05)
 
     # while True:
     #     visualization.handle_events()
     #     visualization.render(graph)
     #     time.sleep(0.05)
 
-
-    return global_best_colony.solution
+    if output_statistic:
+        return global_best_colony.solution, statistic
+    else:
+        return global_best_colony.solution
 
 
 def fill_world_representation(graph):

@@ -39,7 +39,7 @@ def main():
                         help="Runs each algorithm on each instance multiple times to reduce statistical variance.")
     parser.add_argument("-f", "--folder_names", type=str, required=True, nargs="+",
                         help="Folders names to be chosen to work with.")
-    parser.add_argument("-t", "--type", type=str, required=True, choices=['c', 'rc', 'ps', 'ls', 'vnd', 'grasp', 'sa', 'ga'],
+    parser.add_argument("-t", "--type", type=str, required=True, choices=['c', 'rc', 'ps', 'ls', 'vnd', 'grasp', 'sa', 'aco', 'ga'],
                         help="Type of heuristic.")
     parser.add_argument("-nh", "--neighborhood", type=str, required=False, choices=['exchange', 'pickup_relocate',
                         'dropoff_relocate', 'remove_and_append', 'move'],
