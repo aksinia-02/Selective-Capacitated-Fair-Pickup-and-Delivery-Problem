@@ -449,17 +449,232 @@ These resulting configurations, shown below for each instance size, were then fi
     \includegraphics[width=0.48\linewidth]{graphics/irace_ga_50.jpg}
     \hfill
     \includegraphics[width=0.48\linewidth]{graphics/irace_ga_100.jpg}
-    \caption{Graphical representation of SA output for instances of size 50 (left) and 100 (right).}
+    \caption{Configuration Quality Over Time for Instances of Size 50 (left) and 100 (right).}
     \label{fig:irace_convergence}
 \end{figure}
 
-Figure~\ref{fig:irace_convergence} shows how the quality of the best parameter configuration improved as the number of tuning runs increased. 
+Figure~\ref{fig:irace_convergence} shows how the quality of the best parameter configuration improved as the number of tuning runs increased.
+
+
+\subsubsection{Evolution of Solution Quality and Fairness}
+
+Figure~\ref{fig:ga_obj_over_time} illustrates the improvement of the solution quality over time. The most significant progress is achieved during the initial iterations, after which the objective value change gets smaller and converges towards a stable value.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{graphics/ga_obj_over_time.png}
+    \caption{Mean Objective Value Over Iterations for 50 Customers (GA)}
+    \label{fig:ga_obj_over_time}
+\end{figure} 
+
+The evolution of fairness over iterations is presented in Figure~\ref{fig:ga_fairness_over_time}. Although the fairness slightly decreases, it remains above 0.975, which is still a very high fairness value.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{graphics/ga_fairness_over_time.png}
+    \caption{Mean Fairness Value Over Iterations for 50 Customers (GA)}
+    \label{fig:ga_fairness_over_time}
+\end{figure} 
 
 \pagebreak
 
 
 
 \subsection{Ant Colony Optimization}
+
+
+\subsubsection{Evolution of Solution Quality and Fairness}
+
+Figure~\ref{fig:ga_obj_over_time} shows how the solution quality improves throughout the iterations. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{graphics/aco_obj_over_time.png}
+    \caption{Mean Objective Value Over Iterations for 50 Customers (ACO)}
+    \label{fig:aco_obj_over_time}
+\end{figure} 
+
+Figure~\ref{fig:ga_fairness_over_time} illustrates the evolution of the fairness value over the course of the iterations. Overall, the fairness metric exhibits an increasing trend, rising from an initial value of approximately 0.89 to about 0.94.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{graphics/aco_fairness_over_time.png}
+    \caption{Mean Fairness Value Over Iterations for 50 Customers (ACO)}
+    \label{fig:aco_fairness_over_time}
+\end{figure} 
+
+
+\pagebreak
+
+\subsection{Comparison Between GA and ACO}
+
+This subsection analyzes the performance of GA and ACO.
+
+\subsubsection{Experimental Results}
+
+The experimental results show that GA consistently produces lower objective
+values than ACO for both instances of size 50 and 100. This behavior can be observed
+in the boxplots (Figures~\ref{fig:comparison_ga_aco_50} and \ref{fig:comparison_ga_aco_100}) and in the per-instance bar charts (Figures~\ref{fig:comparison_ga_aco_50_per_instance} and \ref{fig:comparison_ga_aco_100_per_instance}), where GA dominates ACO across all
+tested instances. The visual analysis already suggests a clear advantage of GA
+over ACO in terms of solution quality.
+
+
+Regarding computational efficiency, ACO demonstrates a clear advantage over GA. As illustrated in the right parts of Figures~\ref{fig:comparison_ga_aco_50} and \ref{fig:comparison_ga_aco_100}, ACO consistently requires significantly less CPU time across all instances. While GA provides higher solution quality, the lower execution time of ACO suggests it may be more suitable for time-sensitive applications where a rapid solution is required.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.42\linewidth]{graphics/comparison_ga_aco_50_obj.png}
+    \hfill
+    \includegraphics[width=0.42\linewidth]{graphics/comparison_ga_aco_50_time.png}
+    \caption{Comparison GA vs. ACO: Average Objective Function and Run Time for
+50 Customers}
+    \label{fig:comparison_ga_aco_50}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.42\linewidth]{graphics/comparison_ga_aco_100_obj.png}
+    \hfill
+    \includegraphics[width=0.42\linewidth]{graphics/comparison_ga_aco_100_time.png}
+    \caption{Comparison GA vs. ACO: Average Objective Function and Run Time for
+100 Customers}
+    \label{fig:comparison_ga_aco_100}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{graphics/comparison_ga_aco_50_obj_per_instance.png}
+    \includegraphics[width=0.95\linewidth]{graphics/comparison_ga_aco_50_time_per_instance.png}
+    \caption{Comparison GA vs. ACO: Average Objective Function and Run Time for
+50 Customers per Instance}
+    \label{fig:comparison_ga_aco_50_per_instance}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{graphics/comparison_ga_aco_100_obj_per_instance.png}
+    \hfill
+    \includegraphics[width=0.95\linewidth]{graphics/comparison_ga_aco_100_time_per_instance.png}
+    \caption{Comparison GA vs. ACO: Objective Function and Run Time for
+100 Customers per Instance}
+    \label{fig:comparison_ga_aco_100_per_instance}
+\end{figure}
+
+\subsubsection{Statistical Validation}
+
+To formally verify this observation, a one-sided Wilcoxon signed-rank test was
+applied using the following hypotheses:
+
+\[
+H_0: \text{GA} \ge \text{ACO} \quad \text{vs} \quad
+H_1: \text{GA} < \text{ACO}.
+\]
+
+Tests were conducted separately for $nreq=50$ and $nreq=100$ with a significance
+level of $\alpha = 0.05$.
+
+\begin{table}[h]
+\centering
+\caption{One-sided Wilcoxon test: GA better than ACO}
+\label{tab:one_ga_aco}
+\begin{tabular}{c c c c}
+\hline
+$nreq$ & $W$ & $p$-value & Conclusion \\
+\hline
+50  & 0 & $9.31 \times 10^{-10}$ & GA significantly better \\
+100 & 0 & $9.31 \times 10^{-10}$ & GA significantly better \\
+\hline
+\end{tabular}
+\end{table}
+
+For both problem sizes, the test statistic $W=0$ indicates that GA achieves lower
+objective values than ACO on all paired instances. The extremely small p-values
+provide overwhelming statistical evidence that GA outperforms ACO in terms of
+solution quality.
+
+\subsection{Comparison Between GA and VND}
+
+After identifying GA as superior to ACO in terms of solution quality, GA is compared with VND, which was the best performing algorithm of the previous exercise.
+
+\subsubsection{Experimental Results}
+
+The experimental analysis shows that VND generally achieves lower objective
+values than GA for both $nreq=50$ and $nreq=100$. This trend is visible in the
+boxplots (Figures~\ref{fig:comparison_vnd_ga_50} and \ref{fig:comparison_vnd_ga_100}) and per-instance bar charts (Figures~\ref{fig:comparison_vnd_ga_50_per_instance} and \ref{fig:comparison_vnd_ga_100_per_instance}). For $nreq=100$, VND dominates GA on almost
+all instances, while for $nreq=50$ only a small number of instances favor GA.
+
+For the smaller instances ($nreq=50$), VND exhibits superior efficiency, converging significantly faster than GA. However, this trend reverses for the larger instances ($nreq=100$). While the execution time of GA is artificially constrained by a fixed computational budget (a 10-minute time limit), VND’s running time scales more aggressively with the problem size. Consequently, for $nreq=100$, VND becomes the more computationally intensive approach, whereas GA remains bounded by the predefined time threshold. This suggests that while VND achieves higher solution quality, it does so at the cost of significantly higher temporal requirements in larger search spaces.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.42\linewidth]{graphics/comparison_vnd_ga_50_obj.png}
+    \hfill
+    \includegraphics[width=0.42\linewidth]{graphics/comparison_vnd_ga_50_time.png}
+    \caption{Comparison VND vs. GA: Average Objective Function and Run Time for
+50 Customers}
+    \label{fig:comparison_vnd_ga_50}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.42\linewidth]{graphics/comparison_vnd_ga_100_obj.png}
+    \hfill
+    \includegraphics[width=0.42\linewidth]{graphics/comparison_vnd_ga_100_time.png}
+    \caption{Comparison VND vs. GA: Average Objective Function and Run Time for
+100 Customers}
+    \label{fig:comparison_vnd_ga_100}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{graphics/comparison_vnd_ga_50_obj_per_instance.png}
+    \includegraphics[width=0.95\linewidth]{graphics/comparison_vnd_ga_50_time_per_instance.png}
+    \caption{Comparison VND vs. GA: Average Objective Function and Run Time for
+50 Customers per Instance}
+    \label{fig:comparison_vnd_ga_50_per_instance}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{graphics/comparison_vnd_ga_100_obj_per_instance.png}
+    \hfill
+    \includegraphics[width=0.95\linewidth]{graphics/comparison_vnd_ga_100_time_per_instance.png}
+    \caption{Comparison VND vs. GA: Objective Function and Run Time for
+100 Customers per Instance}
+    \label{fig:comparison_vnd_ga_100_per_instance}
+\end{figure}
+
+\subsubsection{Statistical Validation}
+
+To validate these observations, a one-sided Wilcoxon signed-rank test was
+performed with the following hypotheses:
+
+\[
+H_0: \text{VND} \ge \text{GA} \quad \text{vs} \quad
+H_1: \text{VND} < \text{GA}.
+\]
+
+Again, tests were conducted for $nreq=50$ and $nreq=100$ using $\alpha = 0.05$.
+
+\begin{table}[h]
+\centering
+\caption{One-sided Wilcoxon test: VND better than GA}
+\label{tab:one_vnd_ga}
+\begin{tabular}{c c c c}
+\hline
+$nreq$ & $W$ & $p$-value & Conclusion \\
+\hline
+50  & 6 & $1.30 \times 10^{-8}$ & VND significantly better \\
+100 & 0 & $9.31 \times 10^{-10}$ & VND significantly better \\
+\hline
+\end{tabular}
+\end{table}
+
+For $nreq=50$, a small number of instances favor GA, resulting in $W=6$, but the
+p-value remains extremely small. For $nreq=100$, VND produces lower objective
+values than GA on all instances ($W=0$). In both cases, the one-sided Wilcoxon
+test confirms that VND significantly outperforms GA in terms of solution
+quality.
 
 
 
