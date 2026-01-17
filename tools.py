@@ -1,20 +1,28 @@
 import math
 from classes.Vehicle import Vehicle
 
-def objective_function(vehicles, rho):
+def objective_function(vehicles, rho, name="jain"):
     """
     This function computes and returns the objective value of a solution.
     """
 
     total = sum(v.path_length for v in vehicles)
-    squares = sum(v.path_length ** 2 for v in vehicles)
-    jain_fairness = (total ** 2) / (len(vehicles) * squares)
 
-    objective = total + rho * (1 - jain_fairness)
+    if name == "jain":
+        squares = sum(v.path_length ** 2 for v in vehicles)
+        fairness = (total ** 2) / (len(vehicles) * squares)
+    elif name == "min_max":
+        fairness = max_min_fairness(vehicles)
+    else:
+        fairness = gini_coefficient(vehicles)
+
+    objective = total + rho * (1 - fairness)
 
     return objective
 
-def max_min_fairness(vehicles, rho=None):
+
+
+def max_min_fairness(vehicles):
 
     lengths = [v.path_length for v in vehicles]
 
@@ -26,7 +34,7 @@ def max_min_fairness(vehicles, rho=None):
     
     return max(min_length / max_length, 1e-6)
 
-def gini_coefficient(vehicles, rho=None):
+def gini_coefficient(vehicles):
 
     lengths = [v.path_length for v in vehicles]
     n = len(lengths)

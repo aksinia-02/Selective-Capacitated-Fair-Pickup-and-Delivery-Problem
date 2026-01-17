@@ -7,7 +7,7 @@ from classes.aco.Ant import Ant
 from classes.aco.AntColony import AntColony
 from classes.Statistic import Statistic
 
-from tools import max_min_fairness, gini_coefficient, objective_function
+from tools import objective_function
 
 import random
 import time
@@ -21,45 +21,37 @@ def solve(
 
     statistic = Statistic()
 
-    switcher = {
-        "min_max": (max_min_fairness, True),
-        "gini": (gini_coefficient, True),
-        "jain": (objective_function, False)
-    }
-
-    func, maximize = switcher[obj_name]
-
     if visualization:
         visualization = LiveGraph(graph)
     fill_world_representation(graph)
 
     global_best_colony = None
-    global_max_obj = 0 if maximize else math.inf
+    global_max_obj = math.inf
 
     for i in range(60):
         print(f"step {i}")
 
         best_colony = None
-        best_obj = 0 if maximize else math.inf  
+        best_obj = math.inf  
 
         all_colonies = []
 
         for i in range(n_colonies):
-            ant_colony = AntColony(i, graph, alpha, beta, initial_solution, to_fulfilled, func, maximize, rho)
+            ant_colony = AntColony(i, graph, alpha, beta, initial_solution, to_fulfilled, obj_name, rho)
             solution = ant_colony.construct_solution()
             all_colonies.append(ant_colony)
-            new_objective = func(solution, rho)
-            if (maximize and new_objective > best_obj) or (not maximize and new_objective < best_obj):
+            new_objective = objective_function(solution, rho, obj_name)
+            if new_objective < best_obj:
                 best_colony = copy.deepcopy(ant_colony)
                 best_obj = new_objective
 
-        if (maximize and best_obj > global_max_obj) or (not maximize and best_obj < global_max_obj):
+        if best_obj < global_max_obj:
             global_best_colony = copy.deepcopy(best_colony)
             statistic.update(global_best_colony.solution, rho)
             global_max_obj = best_obj
             print(f"global_best_obj {best_obj} is found!")
 
-        deposit_pheromone_rank_based(graph, all_colonies, rho=evaporation, w=int(n_colonies/2), best_colony=best_colony, maximize=maximize)
+        deposit_pheromone_rank_based(graph, all_colonies, rho=evaporation, w=int(n_colonies/2), best_colony=best_colony)
         global_max_tau = max(graph[u][v]["scent"] for u, v in graph.edges())
         update_edge_colors(graph, tau_min=1e-4, tau_max=global_max_tau)
 
@@ -84,7 +76,7 @@ def fill_world_representation(graph):
     for u, v in list(graph.edges()):
         graph[u][v]["width"] = random.randint(1, 4)
         graph[u][v]["color"] = (220, 220, 220)
-        graph[u][v]["scent"] = 0.2
+        graph[u][v]["scent"] = 0.00001
 
 def update_edge_colors(graph, tau_min, tau_max):
     for u, v in graph.edges():
@@ -100,7 +92,7 @@ def update_edge_colors(graph, tau_min, tau_max):
 def normalized_objective(obj, obj_min, obj_max):
     return (obj - obj_min) / (obj_max - obj_min + 1e-9)
 
-def deposit_pheromone_rank_based(graph, all_colonies, rho, w, best_colony, maximize):
+def deposit_pheromone_rank_based(graph, all_colonies, rho, w, best_colony):
     """
     Rank-Based Ant System (Bullnheimer, 1999)
     Ranking is done by objective value
@@ -115,7 +107,7 @@ def deposit_pheromone_rank_based(graph, all_colonies, rho, w, best_colony, maxim
         graph[u][v]["scent"] *= (1 - rho)
 
     # Rank ants by objective value
-    all_colonies.sort(key=lambda c: c.final_objective,reverse=maximize)
+    all_colonies.sort(key=lambda c: c.final_objective,reverse=False)
 
     w = max(3, min(w, len(all_colonies)))
 
@@ -133,4 +125,5 @@ def deposit_pheromone_rank_based(graph, all_colonies, rho, w, best_colony, maxim
                 u = path[i]
                 v = path[i + 1]
                 graph[u][v]["scent"] += delta
-                #graph[u][v]["scent"] = max(5.0, graph[u][v]["scent"])
+                #print(graph[u][v]["scent"])
+                #graph[u][v]["scent"] = max(10.0, graph[u][v]["scent"])

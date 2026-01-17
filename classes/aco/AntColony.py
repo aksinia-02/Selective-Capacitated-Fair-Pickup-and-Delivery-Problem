@@ -1,11 +1,12 @@
 from classes.aco.Ant import Ant
+from tools import objective_function
 
 import copy
 import math
 
 class AntColony:
 
-    def __init__(self, index, graph, alpha, beta, initial_solution, to_fulfilled, func_objective, maximize, rho):
+    def __init__(self, index, graph, alpha, beta, initial_solution, to_fulfilled, obj_name, rho):
         self.index = index
         self.graph = graph
         self.to_fulfilled = to_fulfilled
@@ -14,9 +15,8 @@ class AntColony:
         self.solution = copy.deepcopy(initial_solution)
         self.n_vehicles = len(self.solution)
         self.ants = self.create_ants(self.solution, graph)
-        self.func_objective = func_objective
+        self.obj_name = obj_name
         self.rho = rho
-        self.maximize = maximize
         self.active_ants_counter = self.n_vehicles
         self.must_clean = True
         self.final_objective = 0
@@ -44,15 +44,15 @@ class AntColony:
             if self.must_clean and (self.to_fulfilled == 0):
                 self.keep_depots_selected_pickups()
                 self.must_clean = False
-            best_obj = 0 if self.maximize else math.inf  
+            best_obj = math.inf  
             best_next = None
             best_ant = 0
             for i, ant in enumerate(self.ants):
                 if ant.active:
                     next_node, weight = ant.get_next_step()
                     ant.vehicle.path_length += weight
-                    objective = self.func_objective(self.solution, self.rho)
-                    if (self.maximize and objective > best_obj) or (not self.maximize and objective < best_obj):
+                    objective = objective_function(self.solution, self.rho, self.obj_name)
+                    if objective < best_obj:
                         best_obj = objective
                         best_next = copy.deepcopy(next_node)
                         best_ant = i
@@ -82,6 +82,6 @@ class AntColony:
         for vehicle in self.solution:
             vehicle.add_section_path(depot, self.graph[vehicle.position][depot]["weight"])
 
-        self.final_objective = self.func_objective(self.solution, self.rho)
+        self.final_objective = objective_function(self.solution, self.rho, self.obj_name)
         return self.solution
             
