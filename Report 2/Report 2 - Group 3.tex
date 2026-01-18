@@ -105,10 +105,7 @@ where $\rho$ controls the trade-off between efficiency and fairness.
 \end{mdframed}
 
 \subsection{Experimental Setup}
-
-The experiments of instances with 50 customers for SA algorithm with different cooling strategies we made on machine with a AMD Ryzen 5 3500U and 8 RAM, running Windows 10 and Python 3.13.9. 
-
-All other experiments were made on a machine with a AMD Ryzen 7 9800X3D and 32 RAM, running Windows 11 and Python 3.13.9.
+All experiments were made on a machine with a AMD Ryzen 7 9800X3D and 32 RAM, running Windows 11 and Python 3.13.9.
 
 We tested every algortihm on all of the instances with size 50 and 100. For every non-deterministic algorithm we made at least three runs in order to increase the significance of the results.
 
@@ -482,6 +479,214 @@ The evolution of fairness over iterations is presented in Figure~\ref{fig:ga_fai
 
 \subsection{Ant Colony Optimization}
 
+As an alternative metaheuristic approach, we decided to implement the Ant Colony Optimization algorithm, which is inspired by the behavior of real ant colonies. Each ant colony constructs a feasible solution using indirect communication between ants through pheromone trails.
+
+In our proposed solution each ant incrementally constructs a feasible pickup-and-delivery route for one associated vehicle under capacity, precedence, and fulfillment constraints. So, the number of ants in the colony is the same as the number of vehicles. The algorithm iteratively improves the solution by reinforcement of promising edges using updates of pheromones and evaporation to avoid premature convergence.
+
+\bigskip
+
+The ACO algorithm contains the following problem-specific and algorithmic parameters:
+
+\begin{itemize}
+    \item \textbf{customers}: List of all \texttt{Customer} objects.
+    \item \textbf{initial\_ solution}: List of a given number of empty \texttt{Vehicle} objects.
+    \item \textbf{to\_fulfilled}: Minimum number of customer requests that must be fulfilled.
+    \item \textbf{rho}: Fairness weight.
+    \item \textbf{graph}: Weighted directed graph representing the transportation network.
+    \item \textbf{n\_colonies}: Number of ant colonies constructed per iteration. (iterations).
+    \item \textbf{alpha}: Influence of pheromone intensity on decision making.
+    \item \textbf{beta}: Influence of heuristic desirability (inverse distance).
+    \item \textbf{evaporation}: Pheromone evaporation rate.
+    \item \textbf{obj\_ name}: Selected fairness objective (min–max, Gini, or Jain).
+    \item \textbf{output\_statistic}: Boolean value indicating if the more details regarding the run should be
+returned.
+    \item \textbf{visualization}: Boolean flag that enables real-time visualization of pheromone dynamics (see Figure~\ref{fig:aco_vis}).
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{graphics/aco_vis.png}
+    \caption{Real-time visualization of pheromone dynamics}
+    \label{fig:aco_vis}
+\end{figure} 
+
+The overall procedure consists of the following main phases:
+
+\begin{enumerate}
+    \item \textbf{Initialization}: Initialization of pheromone values and ant colonies.
+    \item \textbf{Solution Construction}: Construction of feasible routes by ants.
+    \item \textbf{Evaluation}: Computation of the objective value for the colony's solution.
+    \item \textbf{Pheromone Update}: Evaporation and reinforcement of pheromone trails.
+    \item \textbf{Termination}: Repetition until a fixed number of iterations is reached.
+\end{enumerate}
+
+Each phase is described in detail below.
+
+\subsubsection{Initialization}
+
+At the start of the ACO algorithm every edge of the graph becomes a small uniform pheromone value and some properties that are not affecting the solution quality but used for the real-time visualization.
+
+For each iteration the colony starts with new ants. Every ant is associated with one vehicle and constructs one feasible route. The pickup nodes are initially available to all ants, whereas the drop-off nodes become available to one ant after the corresponding pickup has been visited by this ant. It ensures precedence feasibility and allows each customer to be fulfilled by a single ant.
+
+\subsubsection{Solution Construction}
+
+Working as cooperative colony ants construct a complete solution step by step. Every ant is responsible for one vehicle. At each step every active ant select feasible successor node, which are constrained by:
+
+\begin{itemize}
+    \item The current load of vehicle
+    \item Pickup-Delivery precedence
+    \item Remaining fulfillment requirements
+\end{itemize}
+
+Let the ant be located at node $i$, then the set of feasible successors for an ant location is denoted by $N_i$. The probability of moving from node $i$ to node $j \in N_i$ is defined as
+\[
+p_{ij}
+=
+\frac{\tau_{ij}^{\alpha} \cdot \eta_{ij}^{\beta}}
+{\displaystyle \sum_{k \in N_i} \tau_{ik}^{\alpha} \cdot \eta_{ik}^{\beta}},
+\]
+
+where $\tau_{ij}$ denotes the pheromone intensity on edge $(i,j)$ and
+$\eta_{ij}$ is the heuristic desirability given by
+\[
+\eta_{ij} = \frac{1}{d_{ij}},
+\]
+where $d_{ij}$ is the  distance between nodes $i$ and $j$.
+
+At every step, all the ants choose the next node for themselves. The algorithm compares these decisions, yielding the best improvement with respect to the global fairness objective. The step with the best objective is selected and executed, while the same node is removed from the feasible sets of the other ants. This cooperation ensures that the constructed solution does not violate the given constraints and respects fairness. 
+
+Once one ant has reached all feasible nodes for selection, it becomes inactive. When all ants completed their routes, each vehicle returns to the depot.
+
+\subsubsection{Evaluation}
+
+After the construction is completed, the qualities of the solutions are evaluated based on the selected objective function. The objective values of all colonies are stored and then used for best global tracking and reinforcement of pheromones.
+
+The best colony that is found in the current iteration is compared to the best global solution, and if the improvement is detected, the best global solution is updated accordingly.
+
+\subsubsection{Pheromone Update}
+
+The pheromone update is done using a rank-based Ant System strategy.
+First, pheromone evaporation is applied to all edges:
+\[
+\tau_{ij} \leftarrow (1 - \rho)\,\tau_{ij}.
+\]
+
+The colonies are then ranked according to their objective values.
+Only the top $w$ colonies (in our case the best half of colonies) deposit pheromone, with rank $r = 0$ denoting the best colony.
+
+Objective values are normalized as following
+\[
+q_r
+=
+\frac{f_r - f_{\min}}
+{f_{\max} - f_{\min} + \varepsilon},
+\]
+where $f_r$ is the objective value of colony $r$, and
+$f_{\min}$ and $f_{\max}$ are the minimum and maximum objective values among all colonies.
+
+For a colony of rank $r$, the pheromone increment deposited on edge $(i,j)$ is defined as
+\[
+\Delta \tau_{ij}^{(r)}
+=
+\frac{(w - r)\, Q \, q_r}
+{1 + \varepsilon \, L},
+\]
+where $L$ is the route length of the corresponding vehicle and
+$\varepsilon$ is a small positive constant.
+
+The total pheromone update is given by
+\[
+\tau_{ij} \leftarrow \tau_{ij}
++ \sum_{r=0}^{w-1} \Delta \tau_{ij}^{(r)}.
+\]
+
+\subsubsection{Termination}
+
+The algorithm terminates if the fixed number of iterations is executed.
+ At the end the best solution found across all iterations is returned.
+
+\subsubsection{Parameter Tuning}
+
+The well-known property of Ant Colony Optimization is a high sensitivity to the choice of its algorithmic parameters that are controlling the balance between exploration and exploitation.
+
+Unlike the Genetic Algorithm, whose parameters we tuned using the automatic configuration tool \textit{irace}, the parameters of the ACO algorithm were selected using a custom racing-based procedure with used of scipy.stats library.
+
+\paragraph{Tuning Setup.}
+Parameter tuning was performed on the set of training instances with 50 customers using jain coefficient for the objective function.
+For each candidate parameter configuration, the ACO algorithm was executed on multiple training instances, and the resulting objective values were recorded. Over repeated runs the mean objective value was used as the performance measure for the minimization.
+
+Previously evaluated configurations were always cached to reduce redundant computations and reused whenever possible.
+
+\paragraph{Parameter Space.}
+The tuning procedure explored a discrete parameter space defined as the Cartesian product of the following parameter domains:
+\begin{itemize}
+    \item Number of colonies $n_{\text{col}} \in \{5, 10, 20\}$
+    \item Pheromone influence $\alpha \in \{0.5, 1.0, \dots, 3.0\}$
+    \item Heuristic influence $\beta \in \{2.0, 3.0, \dots, 6.0\}$
+    \item Evaporation rate $\rho \in \{0.02, 0.06, \dots, 0.20\}$
+\end{itemize}
+
+\paragraph{Racing Procedure.}
+The evaluation of configurations was executed step by step on an increasing number of instances. After each instance a non-parametric Friedman test was applied to detect statistically significant performance differences among the surviving configurations. If it was no significant difference all instances became survivors, in other case if the Friedman test indicated significance at $\alpha = 0.05$, pairwise
+one-sided Wilcoxon signed-rank tests were performed between the best performing configuration and the remaining candidates.
+Then the Bonferroni correction was used to control for multiple comparisons and decrease the probability of Type 1 error.
+Configurations that were found to be statistically inferior were eliminated from the race.
+
+The conditions of the elimination process were:
+
+\begin{itemize}
+    \item a single configuration remained
+    \item all training instances had been processed
+\end{itemize}
+
+
+\paragraph{Tuned Parameter Configurations.}
+The racing-based tuning procedure did not converge to a single dominant configuration, the result of the tuning for ACO algorithm was represented by a small set of statistically indistinguishable parameter settings.
+All surviving configurations are reported in Table~\ref{tab:aco_parameters}.
+
+\begin{table}[H]
+    \centering
+    \caption{Resulting ACO parameter configurations obtained from the racing procedure.}
+    \begin{tabular}{cccc}
+        \toprule
+        \textbf{$n_{\text{col}}$} & \textbf{$\alpha$} & \textbf{$\beta$} & \textbf{Evaporation $\rho$} \\
+        \midrule
+        20 & 0.50 & 6.00 & 0.14 \\
+        20 & 0.50 & 6.00 & 0.02 \\
+        20 & 0.50 & 6.00 & 0.18 \\
+        10 & 0.50 & 6.00 & 0.02 \\
+        10 & 0.50 & 6.00 & 0.06 \\
+        20 & 0.50 & 5.00 & 0.10 \\
+        20 & 0.50 & 5.00 & 0.14 \\
+        20 & 0.50 & 6.00 & 0.06 \\
+        20 & 0.50 & 6.00 & 0.10 \\
+        20 & 1.00 & 5.00 & 0.02 \\
+        20 & 1.00 & 6.00 & 0.02 \\
+        20 & 1.00 & 6.00 & 0.06 \\
+        \bottomrule
+    \end{tabular}
+    \label{tab:aco_parameters}
+\end{table}
+
+
+\paragraph{Discussion of Tuning Results.}
+Across surviving configurations of parameters we can see several consistent patterns.
+
+First, this is a relatively low value of the pheromone influence parameter $\alpha$ (either $0.5$ or $1.0$), combined with large values of the heuristic influence parameter $\beta$ ($5.0$ or $6.0$).
+This indicates that the algorithm benefits from a strong emphasis on heuristic information, while relying not so much on pheromone trails. This behavior is consistent for our problem, because it is logical that distance-based decisions often lead to feasible and efficient routes, especially in early construction phases.
+
+Second, the majority of configurations with high performance use a large number of colonies ($n_{\text{col}} = 20$), although some configurations with $n_{\text{col}} = 10$ also survive the racing procedure.
+
+Third, no dominating evaporation rate $\rho$ was detected.
+Low evaporation values ($\rho = 0.02$) and higher values ($\rho = 0.18$) appear among the surviving configurations probably due to the rank-based update of pheromones. 
+
+
+\paragraph{Final Parameter Selection.}
+As a result the parameter combination
+\[
+n_{\text{col}} = 20, \quad \alpha = 0.5, \quad \beta = 6.0, \quad \rho = 0.10
+\]
+was selected for all subsequent experimental evaluations.
 
 \subsubsection{Evolution of Solution Quality and Fairness}
 
@@ -502,6 +707,83 @@ Figure~\ref{fig:ga_fairness_over_time} illustrates the evolution of the fairness
     \caption{Mean Fairness Value Over Iterations for 50 Customers (ACO)}
     \label{fig:aco_fairness_over_time}
 \end{figure} 
+
+
+\pagebreak
+
+\subsection{Impact of Different Fairness Measures}
+
+To analyze the impact of fairness metric on the solution quality we replaced Jain fairness index $J(R)$ in the objective function by two proposed alternative fairness measures:
+
+\begin{itemize}
+    \item max--min fairness and
+    \item inverted Gini coefficient
+\end{itemize}
+
+The resulting solutions were obtained using the ACO algorithm in 50 customer instances and compared in terms of objective value, route length balance, customer distribution across routes, and fairness represents the chosen measure (see Figure~\ref{fig:comp_meas}).
+
+\paragraph{Objective Value.}
+On the first plot we can clearly see that the average objective function for each instance differs only slightly. All three measures allow us to obtain almost the same result.
+
+\paragraph{Route Length Balance.}
+As expected, max--min fairness usually achieves the strongest control over route length imbalance,
+leading to the smallest ratio between the longest and shortest routes. But for some instances the balance can be even worse in comparison to other fairness measures. It can be related to the strictness of this measure that can limit the algorithm’s ability to minimize the total travel distance on the one hand and get balanced solution on the other.
+There is no significant difference on balance between Gini coefficient and Jain fairness.
+
+\paragraph{Number of Stops Over the Routes.}
+The average balance of number of stops (served customer locations) almost completely corresponds to the balance of length between the shortest and longest routes.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{graphics/comp_meas.png}
+    \caption{Comparison of fairness measures}
+    \label{fig:comp_meas}
+\end{figure} 
+
+
+The lower left plot on Figure~\ref{fig:comp_meas} shows that the Jain fairness index consistently has lower
+average fairness values compared to
+max--min fairness and the inverted Gini coefficient.
+This behavior can be explained by the structural properties.
+
+\paragraph{Max--Min Fairness.}
+Max--min fairness is defined as
+\[
+M = \frac{\min_{k \in K} d(R_k)}{\max_{k \in K} d(R_k)},
+\]
+where $d(R_k)$ denotes the length of route $R_k$.
+This measure depends only on the extreme routes.
+So, the optimization process focuses on equalizing the shortest and longest
+routes, when the intermediate routes are not explicitly constrained.
+
+\paragraph{Inverted Gini Coefficient.}
+The inverted Gini coefficient is defined as
+\[
+G = 1 -
+\frac{
+\sum_{k' \in K} \sum_{k'' \in K}
+\left| d(R_{k'}) - d(R_{k''}) \right|
+}{
+2 n_K \sum_{k' \in K} d(R_{k'})
+},
+\]
+where $n_K$ is the number of routes.
+This measure considers inequality across \emph{all} pairs of routes, but aggregates these
+in a global manner.
+The imbalances must be smoothed out, producing relatively high and stable
+fairness.
+
+\paragraph{Jain Fairness Index.}
+Jain fairness is defined as
+\[
+J(R) =
+\frac{\left( \sum_{k \in K} d(R_k) \right)^2}
+{n_K \sum_{k \in K} d(R_k)^2}.
+\]
+Unlike max--min and Gini fairness, Jain fairness is more sensitive to small variations among routes are amplified, which leads to lower fairness scores when
+the route lengths are not nearly identical.
+
+
 
 
 \pagebreak

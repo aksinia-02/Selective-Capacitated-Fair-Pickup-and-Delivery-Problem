@@ -73,7 +73,7 @@ def save_results(output_path, result):
                 f.write(f"{node.index} ")
             f.write("\n")
 
-def process_for_statistic(heuristic_type, input_file, output_path, neighborhood, strategy, aco_params = None):
+def process_for_statistic(heuristic_type, input_file, output_path, neighborhood, strategy, aco_params =[20, 0.5, 6, 0.1]):
 
     switcher = {
         "c": construction,
@@ -90,7 +90,7 @@ def process_for_statistic(heuristic_type, input_file, output_path, neighborhood,
     to_fulfilled, rho, vehicles, customers = read_input_file(input_file)
 
     # initialize solution if the heuristic starts with a solution
-    if heuristic_type != "c" and heuristic_type != "rc" and heuristic_type != "ps" and heuristic_type != "grasp" and heuristic_type != "ga":
+    if heuristic_type != "c" and heuristic_type != "rc" and heuristic_type != "ps" and heuristic_type != "grasp" and heuristic_type != "ga" and heuristic_type != "aco":
         vehicles = construction(customers, vehicles, to_fulfilled, rho, strategy="with_reordering")
 
 
@@ -110,7 +110,7 @@ def process_for_statistic(heuristic_type, input_file, output_path, neighborhood,
             if heuristic_type == "aco":
                 graph = create_graph(vehicles[0].position, customers)
                 print(aco_params)
-                result, statistic = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fulfilled, graph, *aco_params, rho, "jain", output_statistic=True, visualization=False)
+                result, statistic = switcher.get(heuristic_type, lambda: "unknown")(customers, vehicles, to_fulfilled, graph, *aco_params, rho, "min_max", output_statistic=True, visualization=False)
                 # n_colonies, alpha, beta, evaporation
             elif heuristic_type == "ga" and len(customers) == 50:
                 result, statistic = switcher.get(heuristic_type, lambda: "unknown")(
@@ -160,11 +160,19 @@ def process_for_statistic(heuristic_type, input_file, output_path, neighborhood,
     elapsed_time = end_time - start_time
 
     obj_func = round(objective_function(result, rho), 2)
+    max_min_length, max_min_customers = number_of_stops(result)
+    max_min_fairness, _ = fairness_func(result, "jain")
+
+    max_min_length = round(max_min_length, 2)
+    max_min_customers = round(max_min_customers, 2)
+    max_min_fairness = round(max_min_fairness, 2)
 
     if output_path:
         save_results(output_path, result)
 
-    return obj_func, elapsed_time, statistic
+    print(statistic)
+
+    return obj_func, elapsed_time, statistic, max_min_length, max_min_customers, max_min_fairness
 
 
 def main():
@@ -208,7 +216,7 @@ def main():
     func_name = func_name.replace("_", " ").title()
 
     if heuristic_type == "aco":
-        result = func(customers, vehicles, to_fullfilled, graph, 20, 0.5, 6, 0.1, rho, "gini")
+        result = func(customers, vehicles, to_fullfilled, graph, 20, 0.5, 6, 0.1, rho, "min_max")
     else:
         result = func(customers, vehicles, to_fullfilled, rho)
 

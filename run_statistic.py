@@ -9,7 +9,7 @@ from solve_SCF_PDP import process_for_statistic
 # pip install -r .\requirements.txt
 
 def load_or_create_dataframe(filename, path):
-    columns = ["number", "nreq", "nveh", "to_fulfilled", "rho", "avg_time", "avg_obj_func", "iterations"]
+    columns = ["number", "nreq", "nveh", "to_fulfilled", "rho", "avg_time", "avg_obj_func", "avg_max_min_length", "avg_max_min_fairness", "avg_max_min_customers", "iterations"]
     os.makedirs(path, exist_ok=True)
     path = f"{path}/{filename}"
     if os.path.exists(path):
@@ -121,14 +121,17 @@ def main():
                     }
 
                     output_path = os.path.join(os.path.dirname(file_path.replace("instances", f"{path}")), file_name)
-                    avg_time = avg_obj_func = avg_iterations = 0
+                    avg_time = avg_obj_func = avg_iterations = avg_max_min_length= avg_max_min_fairness = avg_max_min_customers = 0
 
 
                     for i in range(n):
-                        obj_func, elapsed_time, statistic = process_for_statistic(args.type, file_name_full, output_path, neighborhood, strategy)
+                        obj_func, elapsed_time, statistic, max_min_length, max_min_customers, max_min_fairness = process_for_statistic(args.type, file_name_full, output_path, neighborhood, strategy)
                         avg_iterations += statistic.iterations
                         avg_time += elapsed_time
                         avg_obj_func += obj_func
+                        avg_max_min_length += max_min_length
+                        avg_max_min_fairness += max_min_fairness
+                        avg_max_min_customers += max_min_customers
 
                         df_run = pd.DataFrame({
                             "Iteration": list(range(len(statistic.objective_over_time))),
@@ -144,9 +147,15 @@ def main():
                     avg_time = avg_time / n
                     avg_obj_func = avg_obj_func / n
                     avg_iterations = avg_iterations / n
+                    avg_max_min_length = avg_max_min_length / n
+                    avg_max_min_fairness = avg_max_min_fairness / n
+                    avg_max_min_customers = avg_max_min_customers / n
                     result_dict["avg_time"] = avg_time
                     result_dict["avg_obj_func"] = avg_obj_func
                     result_dict["iterations"] = avg_iterations
+                    result_dict["avg_max_min_length"] = avg_max_min_length
+                    result_dict["avg_max_min_fairness"] = avg_max_min_fairness
+                    result_dict["avg_max_min_customers"] = avg_max_min_customers
                     counter += 1
                     results.append(result_dict)
 

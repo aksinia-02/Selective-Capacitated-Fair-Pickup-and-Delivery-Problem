@@ -53,7 +53,8 @@ def solve(
 
         deposit_pheromone_rank_based(graph, all_colonies, rho=evaporation, w=int(n_colonies/2), best_colony=best_colony)
         global_max_tau = max(graph[u][v]["scent"] for u, v in graph.edges())
-        update_edge_colors(graph, tau_min=1e-4, tau_max=global_max_tau)
+        if visualization:
+            update_edge_colors(graph, tau_min=1e-4, tau_max=global_max_tau)
 
         if visualization:
             visualization.handle_events()

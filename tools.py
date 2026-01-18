@@ -6,6 +6,20 @@ def objective_function(vehicles, rho, name="jain"):
     This function computes and returns the objective value of a solution.
     """
 
+    fairness, total = fairness_func(vehicles, name)
+
+    objective = total + rho * (1 - fairness)
+
+    return objective
+
+def number_of_stops(vehicles):
+
+    max_min_length = max(v.path_length for v in vehicles) / min(v.path_length for v in vehicles)
+    max_min_customers = max(len(v.path) / 2 - 2 for v in vehicles) / min(len(v.path) / 2 - 2 for v in vehicles)
+
+    return max_min_length, max_min_customers
+
+def fairness_func(vehicles, name):
     total = sum(v.path_length for v in vehicles)
 
     if name == "jain":
@@ -16,9 +30,7 @@ def objective_function(vehicles, rho, name="jain"):
     else:
         fairness = gini_coefficient(vehicles)
 
-    objective = total + rho * (1 - fairness)
-
-    return objective
+    return fairness, total
 
 
 
